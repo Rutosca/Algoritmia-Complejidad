@@ -1,7 +1,3 @@
-# Importamos nuestros dos módulos
-from dp_seleccion import seleccion_pedidos_dp
-from backtracking_ruta import calcular_ruta_optima_tsp
-
 # main.py
 from dp_seleccion import seleccion_pedidos_dp
 from backtracking_ruta import calcular_ruta_optima_tsp
@@ -38,14 +34,14 @@ def ejecutar_sistema_logistico():
     # ========================================================
     # 2. MÓDULO DE SELECCIÓN (Programación Dinámica)
     # ========================================================
-    print("\n🔍 FASE 1: Selección de pedidos (Mochila)")
+    print("\nFASE 1: Selección de pedidos (Mochila)")
     beneficio, pedidos_seleccionados = seleccion_pedidos_dp(
         pedidos_disponibles, 
         capacidad_camion
     )
     
     if not pedidos_seleccionados:
-        print("⚠️ Ningún pedido cabe en el camión. Operación cancelada.")
+        print("Ningún pedido cabe en el camión. Operación cancelada.")
         return
     
     peso_usado = sum(p[1] for p in pedidos_disponibles if p[0] in pedidos_seleccionados)
@@ -60,12 +56,12 @@ def ejecutar_sistema_logistico():
     for pedido_id in pedidos_seleccionados:
         nodos_a_visitar.append(mapa_nodos[pedido_id])
     
-    print(f"\n🗺️  Nodos a visitar: {nodos_a_visitar}")
+    print(f"\nNodos a visitar: {nodos_a_visitar}")
     
     # ========================================================
     # 4. MÓDULO DE RUTA (Backtracking - TSP)
     # ========================================================
-    print("\n🚚 FASE 2: Cálculo de ruta óptima (TSP)")
+    print("\nFASE 2: Cálculo de ruta óptima (TSP)")
     distancia_minima, mejor_ruta = calcular_ruta_optima_tsp(
         matriz_distancias, 
         nodos_a_visitar
@@ -78,7 +74,7 @@ def ejecutar_sistema_logistico():
     # 5. RESUMEN FINAL
     # ========================================================
     print(f"\n{'='*50}")
-    print(f"📊 RESUMEN DE LA OPERACIÓN")
+    print(f"RESUMEN DE LA OPERACIÓN")
     print(f"{'='*50}")
     print(f"   Beneficio: {beneficio}€")
     print(f"   Distancia: {distancia_minima} km")
@@ -101,7 +97,7 @@ def test_integracion():
     dist, ruta = calcular_ruta_optima_tsp(matriz, nodos)
     assert ruta == [0, 1] or ruta == [0, 1, 0], f"TSP falló: {ruta}"
     
-    print("✅ Test de integración pasado")
+    print("Test de integración pasado")
 
 # test_integracion()  # Descomentar para probar
 
