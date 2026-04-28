@@ -1,105 +1,91 @@
-# main.py
 from dp_seleccion import seleccion_pedidos_dp
 from backtracking_ruta import calcular_ruta_optima_tsp
 
-def ejecutar_sistema_logistico():
-    """Sistema de optimización logística con DP + Backtracking."""
+def simulacion_mejor_vehiculo():
+    inf = float('inf')
     
-    # ========================================================
-    # 1. DATOS INICIALES
-    # ========================================================
-    capacidad_camion = 8  # kg
-    
-    # Formato: (ID, peso_kg, beneficio_euros)
-    pedidos_disponibles = [
-        ("P1", 2, 10),
-        ("P2", 3, 15),
-        ("P3", 4, 30),
-        ("P4", 5, 20)
+    # 1. DEFINICIÓN DEL ESCENARIO (Matriz de Alcalá de la Minuta 1) [cite: 186-200]
+    matriz_alcala = [
+        [ 0,  15,  10,  12,   8,  14,  11,   9,   6,  18,  16,  13], # 0: Almacén
+        [20,   0,   8, inf,  12,  18,  15,  10,  14,   7,   4, inf], # 1: Cervantes
+        [10,   6,   0,   7,   5,  12,   9,   8,   7,  11,   8,  10], # 2: Estación
+        [12, inf,   7,   0,   9,   8,  14,  16,  15,  22,  18,   3], # 3: Campus
+        [ 8,  10,   5,   9,   0,   6,   4,   8,  11,  15,  12,  11], # 4: Magna
+        [11,  13,   9,  14,   4,   5,   0,   6,  12,  16,  11,  15], # 5: Ensanche
+        [ 9,  12,   8,  16,   8,  11,   6,   0,   5,  14,   9,  18], # 6: Chorrillo
+        [ 6,  15,   7,  15,  11,  18,  12,   5,   0,   9,  12,  17], # 7: Reyes Católicos
+        [18,   9,  11,  22,  15,  20,  16,  14,   9,   0,   5,  24], # 8: Nueva Alcalá
+        [16,   5,   8,  18,  12,  15,  11,   9,  12,   4,   0,  19], # 9: Cuatro Caños
+        [13, inf,  10,   4,  11,   9,  15,  18,  17,  24,  19,   0]  # 10: Hospital
     ]
-    
-    # Matriz de distancias (km)
-    # Nodos: 0=Almacén, 1=P1, 2=P2, 3=P3, 4=P4
-    matriz_distancias = [
-        [0, 5, 2, 8, 1],  # Desde Almacén
-        [5, 0, 3, 4, 6],  # Desde P1
-        [2, 3, 0, 7, 2],  # Desde P2
-        [8, 4, 7, 0, 5],  # Desde P3
-        [1, 6, 2, 5, 0]   # Desde P4
+
+    # Catálogo de vehículos y sus capacidades 
+    vehiculos = {
+        "A pie": 5,
+        "Patinete": 15,
+        "Furgoneta": 50
+    }
+
+    # Pedidos disponibles (ID, peso, beneficio, nodo_destino)
+    pedidos_totales = [
+        ("P1", 3, 20, 1), ("P2", 10, 15, 2), ("P3", 2, 25, 4),
+        ("P4", 5, 30, 9), ("P5", 20, 60, 5), ("P6", 8, 35, 10)
     ]
-    
-    # Mapeo ID_pedido -> Índice_nodo
-    mapa_nodos = {"P1": 1, "P2": 2, "P3": 3, "P4": 4}
-    
-    # ========================================================
-    # 2. MÓDULO DE SELECCIÓN (Programación Dinámica)
-    # ========================================================
-    print("\nFASE 1: Selección de pedidos (Mochila)")
-    beneficio, pedidos_seleccionados = seleccion_pedidos_dp(
-        pedidos_disponibles, 
-        capacidad_camion
-    )
-    
-    if not pedidos_seleccionados:
-        print("Ningún pedido cabe en el camión. Operación cancelada.")
+
+    resultados_simulacion = []
+
+    print("=== INICIANDO SIMULACIÓN DE REPARTO PARA RUBEN ===\n")
+
+    # BUCLE PRINCIPAL: Probar cada vehículo
+    for nombre, capacidad in vehiculos.items():
+        print(f"Probando {nombre} (Capacidad: {capacidad}kg)...")
+
+        # PASO A: SELECCIÓN (DP) 
+        # Pasamos solo (id, peso, beneficio) a la función DP
+        pedidos_para_dp = [(p[0], p[1], p[2]) for p in pedidos_totales]
+        beneficio, seleccionados = seleccion_pedidos_dp(pedidos_para_dp, capacidad)
+
+        if not seleccionados:
+            print(f"   - {nombre} no tiene capacidad para ningún pedido.")
+            continue
+
+        # PASO B: RUTA (TSP) 
+        nodos_ruta = [0] # Siempre empezamos en almacén
+        for sel in seleccionados:
+            for p in pedidos_totales:
+                if p[0] == sel:
+                    nodos_ruta.append(p[3])
+
+        tiempo_total, ruta = calcular_ruta_optima_tsp(matriz_alcala, nodos_ruta)
+
+        # PASO C: MÉTRICA DE EFICIENCIA (€/min) 
+        eficiencia = beneficio / tiempo_total if tiempo_total > 0 else 0
+        
+        resultados_simulacion.append({
+            "vehiculo": nombre,
+            "beneficio": beneficio,
+            "tiempo": tiempo_total,
+            "eficiencia": eficiencia,
+            "ruta": ruta
+        })
+        
+        print(f"   ✓ Beneficio: {beneficio}€ | Tiempo: {tiempo_total}min | Eficiencia: {eficiencia:.2f} €/min")
+
+    # 2. COMPARACIÓN FINAL 
+    if not resultados_simulacion:
+        print("\nNo se ha podido completar ninguna ruta.")
         return
-    
-    peso_usado = sum(p[1] for p in pedidos_disponibles if p[0] in pedidos_seleccionados)
-    print(f"   ✓ Pedidos seleccionados: {pedidos_seleccionados}")
-    print(f"   ✓ Capacidad usada: {peso_usado}/{capacidad_camion} kg")
-    print(f"   ✓ Beneficio esperado: {beneficio}€")
-    
-    # ========================================================
-    # 3. TRADUCCIÓN: Pedidos → Nodos del grafo
-    # ========================================================
-    nodos_a_visitar = [0]  # Siempre empezamos en el almacén
-    for pedido_id in pedidos_seleccionados:
-        nodos_a_visitar.append(mapa_nodos[pedido_id])
-    
-    print(f"\nNodos a visitar: {nodos_a_visitar}")
-    
-    # ========================================================
-    # 4. MÓDULO DE RUTA (Backtracking - TSP)
-    # ========================================================
-    print("\nFASE 2: Cálculo de ruta óptima (TSP)")
-    distancia_minima, mejor_ruta = calcular_ruta_optima_tsp(
-        matriz_distancias, 
-        nodos_a_visitar
-    )
-    
-    print(f"   ✓ Ruta óptima: {mejor_ruta}")
-    print(f"   ✓ Distancia total: {distancia_minima} km")
-    
-    # ========================================================
-    # 5. RESUMEN FINAL
-    # ========================================================
-    print(f"\n{'='*50}")
-    print(f"RESUMEN DE LA OPERACIÓN")
-    print(f"{'='*50}")
-    print(f"   Beneficio: {beneficio}€")
-    print(f"   Distancia: {distancia_minima} km")
-    print(f"   Eficiencia: {beneficio/distancia_minima:.2f} €/km")
-    print(f"{'='*50}\n")
 
+    # Encontrar el que tiene mayor eficiencia
+    ganador = max(resultados_simulacion, key=lambda x: x['eficiencia'])
 
-def test_integracion():
-    """Prueba rápida del flujo completo."""
-    # Caso trivial: 1 pedido que cabe justo
-    cap = 5
-    pedidos = [("P1", 5, 10)]
-    matriz = [[0, 3], [3, 0]]
-    mapa = {"P1": 1}
-    
-    ben, sel = seleccion_pedidos_dp(pedidos, cap)
-    assert sel == ["P1"], f"DP falló: {sel}"
-    
-    nodos = [0] + [mapa[p] for p in sel]
-    dist, ruta = calcular_ruta_optima_tsp(matriz, nodos)
-    assert ruta == [0, 1] or ruta == [0, 1, 0], f"TSP falló: {ruta}"
-    
-    print("Test de integración pasado")
-
-# test_integracion()  # Descomentar para probar
+    print("\n" + "="*50)
+    print("CONSEJO PARA RUBÉN")
+    print("="*50)
+    print(f"El vehículo más rentable hoy es: {ganador['vehiculo'].upper()}")
+    print(f"Genera {ganador['eficiencia']:.2f} euros por cada minuto de trabajo.")
+    print(f"Ruta recomendada: {ganador['ruta']}")
+    print("="*50)
 
 if __name__ == "__main__":
-    ejecutar_sistema_logistico()
+    simulacion_mejor_vehiculo()
