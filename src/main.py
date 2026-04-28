@@ -5,7 +5,7 @@ from floyd_warshall import floyd_warshall, expandir_ruta_completa, nombres_ruta
 def simulacion_mejor_vehiculo():
     inf = float('inf')
     
-    # 1. DEFINICIÓN DEL ESCENARIO (Matriz de Alcalá de la Minuta 1) [cite: 186-200]
+    # 1. DEFINICIÓN DEL ESCENARIO (Matriz de Alcalá de la Minuta 1)
     matriz_alcala = [
         [ 0,  15,  10,  12,   8,  14,  11,   9,   6,  18,  16,  13], # 0: Almacén
         [20,   0,   8, inf,  12,  18,  15,  10,  14,   7,   4, inf], # 1: Cervantes
@@ -52,7 +52,7 @@ def simulacion_mejor_vehiculo():
         print(f"Probando {nombre} (Capacidad: {capacidad}kg)...")
 
         # PASO A: SELECCIÓN (DP) 
-        # Pasamos solo (id, peso, beneficio) a la función DP
+        # Pasar solo (id, peso, beneficio) a la función DP
         pedidos_para_dp = [(p[0], p[1], p[2]) for p in pedidos_totales]
         beneficio, seleccionados = seleccion_pedidos_dp(pedidos_para_dp, capacidad)
 
@@ -61,7 +61,7 @@ def simulacion_mejor_vehiculo():
             continue
 
         # PASO B: RUTA (TSP) 
-        nodos_ruta = [0] # Siempre empezamos en almacén
+        nodos_ruta = [0] # Siempre empezar en almacén
         for sel in seleccionados:
             for p in pedidos_totales:
                 if p[0] == sel:
