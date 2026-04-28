@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa de Alcalá de Henares</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0c10;
+    color: #c8b47a;
+    font-family: 'Crimson Text', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.7rem;
+    letter-spacing: 0.12em;
+    color: #e2c97a;
+    text-align: center;
+    margin-bottom: 4px;
+    text-shadow: 0 0 30px rgba(226,201,122,0.3);
+  }
+  .subtitle {
+    font-size: 0.95rem;
+    color: #7a8a7a;
+    letter-spacing: 0.05em;
+    margin-bottom: 20px;
+    font-style: italic;
+  }
+
+  .container {
+    position: relative;
+    width: 860px;
+    max-width: 100%;
+  }
+
+  svg#map {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid #2a2e22;
+    border-radius: 8px;
+    background: radial-gradient(ellipse at 40% 40%, #111820 0%, #080b0e 100%);
+    box-shadow: 0 0 60px rgba(0,0,0,0.8), inset 0 0 80px rgba(0,0,0,0.4);
+  }
+
+  /* grid lines */
+  .grid-line { stroke: #1a2030; stroke-width: 0.5; }
+
+  .edge {
+    stroke-opacity: 0.55;
+    transition: stroke-opacity 0.2s, stroke-width 0.2s;
+    cursor: pointer;
+  }
+  .edge:hover { stroke-opacity: 1; }
+
+  .edge-label {
+    font-family: 'Crimson Text', serif;
+    font-size: 10px;
+    fill: #9aad6a;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .node-circle {
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+  .node-circle:hover { filter: brightness(1.5); }
+
+  .node-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9.5px;
+    fill: #e2c97a;
+    pointer-events: none;
+    text-anchor: middle;
+  }
+  .node-index {
+    font-family: 'Crimson Text', serif;
+    font-size: 8px;
+    fill: #0a0c10;
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-weight: 600;
+  }
+
+  .tooltip {
+    position: absolute;
+    background: #111820ee;
+    border: 1px solid #c8b47a55;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    color: #c8b47a;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    max-width: 220px;
+    line-height: 1.6;
+    backdrop-filter: blur(4px);
+  }
+  .tooltip strong {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    color: #e2c97a;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .tooltip .conn { color: #9aad6a; font-size: 0.82rem; }
+
+  .legend {
+    display: flex;
+    gap: 24px;
+    margin-top: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 0.83rem;
+    color: #7a8a6a;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-line {
+    width: 32px; height: 3px; border-radius: 2px;
+  }
+
+  .info-bar {
+    margin-top: 10px;
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: #5a6a5a;
+    font-size: 0.82rem;
+    text-align: center;
+  }
+
+  .highlighted-edge { stroke-opacity: 1 !important; stroke-width: 3px !important; }
+  .dimmed-edge { stroke-opacity: 0.08 !important; }
+  .dimmed-node { opacity: 0.25; }
+</style>
+</head>
+<body>
+
+<h1>Grafo de Alcalá de Henares</h1>
+<p class="subtitle">Red de nodos y aristas ponderadas · haz clic en un nodo para explorar</p>
+
+<div class="container">
+  <svg id="map" viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="tooltip" id="tooltip"></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-line" style="background: linear-gradient(90deg, #4ade80, #22c55e);"></div>
+    <span>Distancia corta (&lt;8)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-line" style="background: linear-gradient(90deg, #facc15, #f59e0b);"></div>
+    <span>Media (8–15)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-line" style="background: linear-gradient(90deg, #f87171, #ef4444);"></div>
+    <span>Larga (&gt;15)</span>
+  </div>
+</div>
+<p class="info-bar">Pasa el ratón sobre una arista para ver el peso · clic en nodo para filtrar sus conexiones</p>
+
+<script>
+const INF = Infinity;
+const matrix = [
+  [ 0, 15, 10, 12,  8, 14, 11,  9,  6, 18, 16, 13],
+  [45,  0,  8, INF, 12, 18, 15, 10, 14,  7,  4, INF],
+  [10,  6,  0,  7,  5, 12,  9,  8,  7, 11,  8, 10],
+  [12, INF, 7,  0,  9,  8, 14, 16, 15, 22, 18,  3],
+  [ 8, 10,  5,  9,  0,  6,  4,  8, 11, 15, 12, 11],
+  [14, 16, 12,  8,  6,  0,  5, 11, 18, 20, 15,  9],
+  [11, 13,  9, 14,  4,  5,  0,  6, 12, 16, 11, 15],
+  [ 9, 12,  8, 16,  8, 11,  6,  0,  5, 14,  9, 18],
+  [ 6, 15,  7, 15, 11, 18, 12,  5,  0,  9, 12, 17],
+  [18,  9, 11, 22, 15, 20, 16, 14,  9,  0,  5, 24],
+  [16,  5,  8, 18, 12, 15, 11,  9, 12,  4,  0, 60],
+  [13, INF,10,  4, 11,  9, 15, 18, 17, 24,  5,  0]
+];
+
+const nodes = [
+  { id: 0, name: "Garena",       x: 340, y: 70  },
+  { id: 1, name: "Cervantes",    x: 420, y: 210 },
+  { id: 2, name: "Estación",     x: 370, y: 295 },
+  { id: 3, name: "Campus",       x: 620, y: 185 },
+  { id: 4, name: "Magna",        x: 490, y: 255 },
+  { id: 5, name: "Espartales",   x: 530, y: 390 },
+  { id: 6, name: "Ensanche",     x: 445, y: 355 },
+  { id: 7, name: "Chorrillo",    x: 220, y: 295 },
+  { id: 8, name: "Reyes Cat.",   x: 175, y: 195 },
+  { id: 9, name: "N. Alcalá",   x: 680, y: 320 },
+  { id: 10,name: "C. Caños",    x: 280, y: 145 },
+  { id: 11,name: "Hospital",    x: 600, y: 305 },
+];
+
+const svg = document.getElementById('map');
+const tooltip = document.getElementById('tooltip');
+const ns = 'http://www.w3.org/2000/svg';
+
+// Draw grid
+for (let x = 40; x < 860; x += 60) {
+  const l = document.createElementNS(ns, 'line');
+  l.setAttribute('x1', x); l.setAttribute('y1', 0);
+  l.setAttribute('x2', x); l.setAttribute('y2', 520);
+  l.setAttribute('class', 'grid-line'); svg.appendChild(l);
+}
+for (let y = 40; y < 520; y += 60) {
+  const l = document.createElementNS(ns, 'line');
+  l.setAttribute('x1', 0); l.setAttribute('y1', y);
+  l.setAttribute('x2', 860); l.setAttribute('y2', y);
+  l.setAttribute('class', 'grid-line'); svg.appendChild(l);
+}
+
+// Arrowhead marker
+const defs = document.createElementNS(ns, 'defs');
+['green', 'yellow', 'red'].forEach((col, i) => {
+  const colors = ['#4ade80', '#facc15', '#f87171'];
+  const m = document.createElementNS(ns, 'marker');
+  m.setAttribute('id', `arrow-${col}`);
+  m.setAttribute('markerWidth', '8');
+  m.setAttribute('markerHeight', '6');
+  m.setAttribute('refX', '7');
+  m.setAttribute('refY', '3');
+  m.setAttribute('orient', 'auto');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', 'M0,0 L0,6 L8,3 z');
+  path.setAttribute('fill', colors[i]);
+  path.setAttribute('fill-opacity', '0.8');
+  m.appendChild(path);
+  defs.appendChild(m);
+});
+svg.appendChild(defs);
+
+function edgeColor(w) {
+  if (w < 8)  return { stroke: '#4ade80', marker: 'arrow-green',  width: 2.0 };
+  if (w <= 15) return { stroke: '#facc15', marker: 'arrow-yellow', width: 1.5 };
+  return              { stroke: '#f87171', marker: 'arrow-red',    width: 1.0 };
+}
+
+function shorten(x1, y1, x2, y2, r) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const d = Math.sqrt(dx*dx + dy*dy);
+  if (d < 1) return { x1, y1, x2, y2 };
+  return {
+    x1: x1 + (dx/d)*r,
+    y1: y1 + (dy/d)*r,
+    x2: x2 - (dx/d)*(r+4),
+    y2: y2 - (dy/d)*(r+4),
+  };
+}
+
+const edgeGroup = document.createElementNS(ns, 'g');
+svg.appendChild(edgeGroup);
+const labelGroup = document.createElementNS(ns, 'g');
+svg.appendChild(labelGroup);
+const nodeGroup = document.createElementNS(ns, 'g');
+svg.appendChild(nodeGroup);
+
+const edgeElements = [];
+
+// Draw edges
+for (let i = 0; i < 12; i++) {
+  for (let j = 0; j < 12; j++) {
+    if (i === j) continue;
+    const w = matrix[i][j];
+    if (!isFinite(w)) continue;
+
+    const n1 = nodes[i], n2 = nodes[j];
+    const { stroke, marker, width } = edgeColor(w);
+    const r = 16;
+    const pts = shorten(n1.x, n1.y, n2.x, n2.y, r);
+
+    // slight curve offset for bidirectional pairs
+    const hasMirror = isFinite(matrix[j][i]);
+    let d;
+    if (hasMirror) {
+      const dx = pts.x2 - pts.x1, dy = pts.y2 - pts.y1;
+      const nx = -dy, ny = dx;
+      const len = Math.sqrt(nx*nx + ny*ny);
+      const off = 6;
+      const cx = (pts.x1 + pts.x2)/2 + (nx/len)*off;
+      const cy = (pts.y1 + pts.y2)/2 + (ny/len)*off;
+      d = `M${pts.x1},${pts.y1} Q${cx},${cy} ${pts.x2},${pts.y2}`;
+    } else {
+      d = `M${pts.x1},${pts.y1} L${pts.x2},${pts.y2}`;
+    }
+
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', stroke);
+    path.setAttribute('stroke-width', width);
+    path.setAttribute('class', 'edge');
+    path.setAttribute('marker-end', `url(#${marker})`);
+    path.dataset.from = i;
+    path.dataset.to = j;
+    path.dataset.weight = w;
+    edgeGroup.appendChild(path);
+    edgeElements.push(path);
+
+    // edge weight label
+    const mx = hasMirror
+      ? (pts.x1 + pts.x2)/2 + (-((pts.y2-pts.y1))/Math.sqrt((pts.x2-pts.x1)**2+(pts.y2-pts.y1)**2))*14
+      : (pts.x1 + pts.x2)/2;
+    const my = hasMirror
+      ? (pts.y1 + pts.y2)/2 + (((pts.x2-pts.x1))/Math.sqrt((pts.x2-pts.x1)**2+(pts.y2-pts.y1)**2))*14
+      : (pts.y1 + pts.y2)/2;
+
+    const lbl = document.createElementNS(ns, 'text');
+    lbl.setAttribute('x', mx);
+    lbl.setAttribute('y', my);
+    lbl.setAttribute('class', 'edge-label');
+    lbl.setAttribute('text-anchor', 'middle');
+    lbl.textContent = w;
+    lbl.dataset.from = i;
+    lbl.dataset.to = j;
+    labelGroup.appendChild(lbl);
+
+    path.addEventListener('mouseenter', (e) => {
+      lbl.style.opacity = '1';
+      showTooltip(e, `${nodes[i].name} → ${nodes[j].name}`, `Peso: <b>${w}</b>`);
+    });
+    path.addEventListener('mousemove', moveTooltip);
+    path.addEventListener('mouseleave', () => {
+      lbl.style.opacity = '0';
+      hideTooltip();
+    });
+  }
+}
+
+// Draw nodes
+let selectedNode = null;
+nodes.forEach(n => {
+  const g = document.createElementNS(ns, 'g');
+
+  // Glow
+  const glow = document.createElementNS(ns, 'circle');
+  glow.setAttribute('cx', n.x); glow.setAttribute('cy', n.y); glow.setAttribute('r', 22);
+  glow.setAttribute('fill', '#c8b47a'); glow.setAttribute('fill-opacity', '0.07');
+  glow.setAttribute('filter', 'url(#blur)');
+  g.appendChild(glow);
+
+  const circle = document.createElementNS(ns, 'circle');
+  circle.setAttribute('cx', n.x); circle.setAttribute('cy', n.y); circle.setAttribute('r', 14);
+  circle.setAttribute('fill', '#1a2030');
+  circle.setAttribute('stroke', '#c8b47a');
+  circle.setAttribute('stroke-width', '1.5');
+  circle.setAttribute('class', 'node-circle');
+
+  const idx = document.createElementNS(ns, 'text');
+  idx.setAttribute('x', n.x); idx.setAttribute('y', n.y);
+  idx.setAttribute('class', 'node-index');
+  idx.textContent = n.id;
+
+  const lbl = document.createElementNS(ns, 'text');
+  lbl.setAttribute('x', n.x); lbl.setAttribute('y', n.y + 26);
+  lbl.setAttribute('class', 'node-label');
+  lbl.textContent = n.name;
+
+  g.appendChild(circle);
+  g.appendChild(idx);
+  g.appendChild(lbl);
+  nodeGroup.appendChild(g);
+
+  // Node interactions
+  g.style.cursor = 'pointer';
+  g.addEventListener('mouseenter', (e) => {
+    if (selectedNode !== null) return;
+    const conns = [];
+    for (let j = 0; j < 12; j++) {
+      if (j !== n.id && isFinite(matrix[n.id][j]))
+        conns.push(`${nodes[j].name}: ${matrix[n.id][j]}`);
+    }
+    showTooltip(e, `[${n.id}] ${n.name}`,
+      `<span class="conn">${conns.join('<br>')}</span>`);
+  });
+  g.addEventListener('mousemove', moveTooltip);
+  g.addEventListener('mouseleave', () => {
+    if (selectedNode !== null) return;
+    hideTooltip();
+  });
+
+  g.addEventListener('click', () => {
+    if (selectedNode === n.id) {
+      // deselect
+      selectedNode = null;
+      resetHighlight();
+      hideTooltip();
+    } else {
+      selectedNode = n.id;
+      highlightNode(n.id);
+    }
+  });
+});
+
+function highlightNode(id) {
+  edgeElements.forEach(el => {
+    const from = +el.dataset.from, to = +el.dataset.to;
+    if (from === id || to === id) {
+      el.classList.add('highlighted-edge');
+      el.classList.remove('dimmed-edge');
+    } else {
+      el.classList.add('dimmed-edge');
+      el.classList.remove('highlighted-edge');
+    }
+  });
+  // Show labels for connected edges
+  labelGroup.querySelectorAll('.edge-label').forEach(l => {
+    l.style.opacity = (+l.dataset.from === id || +l.dataset.to === id) ? '1' : '0';
+  });
+}
+
+function resetHighlight() {
+  edgeElements.forEach(el => {
+    el.classList.remove('highlighted-edge', 'dimmed-edge');
+  });
+  labelGroup.querySelectorAll('.edge-label').forEach(l => { l.style.opacity = '0'; });
+}
+
+function showTooltip(e, title, body) {
+  tooltip.innerHTML = `<strong>${title}</strong>${body}`;
+  tooltip.style.opacity = '1';
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  const rect = document.querySelector('.container').getBoundingClientRect();
+  let x = e.clientX - rect.left + 12;
+  let y = e.clientY - rect.top - 10;
+  if (x + 230 > rect.width) x -= 240;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top  = y + 'px';
+}
+function hideTooltip() { tooltip.style.opacity = '0'; }
+
+// Add blur filter
+const blurFilter = document.createElementNS(ns, 'filter');
+blurFilter.setAttribute('id', 'blur');
+const fe = document.createElementNS(ns, 'feGaussianBlur');
+fe.setAttribute('stdDeviation', '6');
+blurFilter.appendChild(fe);
+defs.appendChild(blurFilter);
+
+// Click on background to deselect
+svg.addEventListener('click', (e) => {
+  if (e.target === svg) { selectedNode = null; resetHighlight(); hideTooltip(); }
+});
+</script>
+</body>
+</html>
