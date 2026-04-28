@@ -1,5 +1,6 @@
 from dp_seleccion import seleccion_pedidos_dp
 from backtracking_ruta import calcular_ruta_optima_tsp
+from floyd_warshall import floyd_warshall, expandir_ruta_completa, nombres_ruta
 
 def simulacion_mejor_vehiculo():
     inf = float('inf')
@@ -34,6 +35,16 @@ def simulacion_mejor_vehiculo():
 
     resultados_simulacion = []
 
+    # ========================================================
+    # PRE-PROCESO: FLOYD-WARSHALL
+    # Calcula los caminos mínimos reales entre todos los pares
+    # de nodos, resolviendo los saltos con inf (sin conexión
+    # directa). A partir de aquí, el TSP trabaja con distancias
+    # reales en lugar de costes directos incompletos.
+    # Complejidad: O(n³), se ejecuta UNA SOLA VEZ.
+    # ========================================================
+    dist_fw, pred_fw = floyd_warshall(matriz_alcala)
+
     print("=== INICIANDO SIMULACIÓN DE REPARTO PARA RUBEN ===\n")
 
     # BUCLE PRINCIPAL: Probar cada vehículo
@@ -56,20 +67,28 @@ def simulacion_mejor_vehiculo():
                 if p[0] == sel:
                     nodos_ruta.append(p[3])
 
-        tiempo_total, ruta = calcular_ruta_optima_tsp(matriz_alcala, nodos_ruta)
+        # La matriz dist_fw ya contiene los costes mínimos reales (con intermediarios)
+        tiempo_total, ruta = calcular_ruta_optima_tsp(dist_fw, nodos_ruta)
 
-        # PASO C: MÉTRICA DE EFICIENCIA (€/min) 
+        # PASO C: MÉTRICA DE EFICIENCIA (€/min)
         eficiencia = beneficio / tiempo_total if tiempo_total > 0 else 0
-        
+
+        # PASO D: EXPANSIÓN DE RUTA (Floyd-Warshall)
+        # Reconstruye el trayecto físico completo insertando los nodos
+        # intermedios que Floyd-Warshall utilizó para optimizar cada tramo.
+        # Se almacena para análisis detallado pero no se muestra en pantalla.
+        ruta_expandida = expandir_ruta_completa(ruta, pred_fw)
+
         resultados_simulacion.append({
             "vehiculo": nombre,
             "beneficio": beneficio,
             "tiempo": tiempo_total,
             "eficiencia": eficiencia,
-            "ruta": ruta
+            "ruta": ruta,                   # Nodos clave (TSP)
+            "ruta_expandida": ruta_expandida # Trayecto físico completo (FW)
         })
         
-        print(f"   ✓ Beneficio: {beneficio}€ | Tiempo: {tiempo_total}min | Eficiencia: {eficiencia:.2f} €/min")
+        print(f"   [OK] Beneficio: {beneficio} EUR | Tiempo: {tiempo_total}min | Eficiencia: {eficiencia:.2f} EUR/min")
 
     # 2. COMPARACIÓN FINAL 
     if not resultados_simulacion:
