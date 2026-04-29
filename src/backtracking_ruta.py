@@ -9,6 +9,8 @@ def calcular_ruta_optima_tsp(matriz_tiempos, destinos_unicos):
                   El índice [0] SIEMPRE debe ser el almacén (origen).
     SALIDAS:    Devuelve una tupla (coste_total_minimo, mejor_ruta_encontrada).
     """
+    # Convertimos a diccionario para eliminar duplicados y se convierte de nuevo a lista
+    destinos_unicos = list(dict.fromkeys(destinos_unicos))
     # El origen es el primer elemento de la lista
     origen = destinos_unicos[0]
     # Los nodos intermedios a visitar son el resto
