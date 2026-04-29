@@ -1,0 +1,18 @@
+{
+  "id_escenario": 3,
+  "nombre": "Ruteo Complejo",
+  "descripcion": "Grafo con múltiples caminos similares y calles cortadas (null). Evalúa la robustez topologica.",
+  "pedidos": [
+    {"id": "P1", "peso": 5, "beneficio": 20, "destino": 1},
+    {"id": "P2", "peso": 5, "beneficio": 20, "destino": 2},
+    {"id": "P3", "peso": 5, "beneficio": 20, "destino": 3},
+    {"id": "P4", "peso": 5, "beneficio": 20, "destino": 4}
+  ],
+  "matriz_adyacencia": [
+    [0, 10, null, null, 30],
+    [10, 0, 5, null, 25],
+    [null, 5, 0, 5, 20],
+    [null, null, 5, 0, 5],
+    [30, 25, 20, 5, 0]
+  ]
+}
