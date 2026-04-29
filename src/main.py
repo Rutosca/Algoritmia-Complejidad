@@ -5,6 +5,32 @@ from dp_seleccion import seleccion_pedidos_dp
 from backtracking_ruta import calcular_ruta_optima_tsp
 from floyd_warshall import floyd_warshall, expandir_ruta_completa, nombres_ruta
 
+
+def cargar_escenario(ruta_archivo):
+    """Carga un escenario desde un archivo JSON."""
+    with open(ruta_archivo, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def seleccionar_escenario(archivos):
+    """Permite al usuario seleccionar uno o todos los escenarios disponibles."""
+    print("Escenarios disponibles:")
+    for i, nombre in enumerate(archivos):
+        print(f"  [{i+1}] {nombre}")
+    print(f"  [0] Ejecutar todos")
+
+    opcion = input("\nSelecciona un escenario (número): ").strip()
+    if opcion == '0':
+        return archivos
+    try:
+        idx = int(opcion) - 1
+        if 0 <= idx < len(archivos):
+            return [archivos[idx]]
+    except ValueError:
+        pass
+    print("Opción no válida, ejecutando todos los escenarios.")
+    return archivos
+
 def simulacion_mejor_vehiculo():
     inf = float('inf')
     
@@ -48,68 +74,71 @@ def simulacion_mejor_vehiculo():
     for nombre_archivo in archivos_a_ejecutar:
 
         escenario = cargar_escenario(os.path.join(directorio_escenarios, nombre_archivo))
+        pedidos_totales = escenario['pedidos']
 
         resultados_simulacion = []
 
-    # ========================================================
-    # PRE-PROCESO: FLOYD-WARSHALL
-    # Calcula los caminos mínimos reales entre todos los pares
-    # de nodos, resolviendo los saltos con inf (sin conexión
-    # directa). A partir de aquí, el TSP trabaja con distancias
-    # reales en lugar de costes directos incompletos.
-    # Complejidad: O(n³), se ejecuta UNA SOLA VEZ.
-    # ========================================================
-    dist_fw, pred_fw = floyd_warshall(matriz_alcala)
+        # ========================================================
+        # PRE-PROCESO: FLOYD-WARSHALL
+        # Calcula los caminos mínimos reales entre todos los pares
+        # de nodos, resolviendo los saltos con inf (sin conexión
+        # directa). A partir de aquí, el TSP trabaja con distancias
+        # reales en lugar de costes directos incompletos.
+        # Complejidad: O(n³), se ejecuta UNA SOLA VEZ.
+        # ========================================================
+        dist_fw, pred_fw = floyd_warshall(matriz_alcala)
 
-    print("=== INICIANDO SIMULACIÓN DE REPARTO PARA RUBEN ===\n")
+        print(f"\n=== ESCENARIO: {nombre_archivo} ===")
+        print("=== INICIANDO SIMULACIÓN DE REPARTO PARA RUBEN ===\n")
 
-    # BUCLE PRINCIPAL: Probar cada vehículo
-    for nombre, capacidad in vehiculos.items():
-        print(f"Probando {nombre} (Capacidad: {capacidad}kg)...")
+        # BUCLE PRINCIPAL: Probar cada vehículo
+        for nombre, vehiculo_data in vehiculos.items():
+            capacidad = vehiculo_data["capacidad"]
+            print(f"Probando {nombre} (Capacidad: {capacidad}kg)...")
 
-            # PASO A: SELECCIÓN (DP) 
+            # PASO A: SELECCIÓN (DP)
             # Pasar solo (id, peso, beneficio) a la función DP
-            pedidos_para_dp = [(p['id'], p['peso'], p['beneficio']) for p in escenario['pedidos']]
+            pedidos_para_dp = [(p['id'], p['peso'], p['beneficio']) for p in pedidos_totales]
             beneficio, seleccionados = seleccion_pedidos_dp(pedidos_para_dp, capacidad)
 
             if not seleccionados:
                 print(f"   - {nombre} no tiene capacidad para ningún pedido.")
                 continue
 
-            # PASO B: RUTA (TSP) 
-            nodos_ruta = [0] # Siempre empezar en almacén
+            # PASO B: RUTA (TSP)
+            nodos_ruta = [0]  # Siempre empezar en almacén
             for sel in seleccionados:
-                for p in escenario['pedidos']:
+                for p in pedidos_totales:
                     if p['id'] == sel:
                         nodos_ruta.append(p['destino'])
 
             # La matriz dist_fw ya contiene los costes mínimos reales (con intermediarios)
             tiempo_total, ruta = calcular_ruta_optima_tsp(dist_fw, nodos_ruta)
 
-        # PASO C: MÉTRICA DE EFICIENCIA (€/min)
-        eficiencia = beneficio / tiempo_total if tiempo_total > 0 else 0
+            # PASO C: MÉTRICA DE EFICIENCIA (€/min)
+            eficiencia = beneficio / tiempo_total if tiempo_total > 0 else 0
 
-        # PASO D: EXPANSIÓN DE RUTA (Floyd-Warshall)
-        # Reconstruye el trayecto físico completo insertando los nodos
-        # intermedios que Floyd-Warshall utilizó para optimizar cada tramo.
-        # Se almacena para análisis detallado pero no se muestra en pantalla.
-        ruta_expandida = expandir_ruta_completa(ruta, pred_fw)
+            # PASO D: EXPANSIÓN DE RUTA (Floyd-Warshall)
+            # Reconstruye el trayecto físico completo insertando los nodos
+            # intermedios que Floyd-Warshall utilizó para optimizar cada tramo.
+            # Se almacena para análisis detallado pero no se muestra en pantalla.
+            ruta_expandida = expandir_ruta_completa(ruta, pred_fw)
 
-        resultados_simulacion.append({
-            "vehiculo": nombre,
-            "beneficio": beneficio,
-            "tiempo": tiempo_total,
-            "eficiencia": eficiencia,
-            "ruta": ruta,                   # Nodos clave (TSP)
-            "ruta_expandida": ruta_expandida # Trayecto físico completo (FW)
-        })
-        
-        print(f"   [OK] Beneficio: {beneficio} EUR | Tiempo: {tiempo_total}min | Eficiencia: {eficiencia:.2f} EUR/min")
+            resultados_simulacion.append({
+                "vehiculo": nombre,
+                "beneficio": beneficio,
+                "tiempo": tiempo_total,
+                "eficiencia": eficiencia,
+                "ruta": ruta,                    # Nodos clave (TSP)
+                "ruta_expandida": ruta_expandida  # Trayecto físico completo (FW)
+            })
 
-        # 2. COMPARACIÓN FINAL 
+            print(f"   [OK] Beneficio: {beneficio} EUR | Tiempo: {tiempo_total}min | Eficiencia: {eficiencia:.2f} EUR/min")
+
+        # 2. COMPARACIÓN FINAL (fuera del bucle de vehículos)
         if not resultados_simulacion:
             print("\nNo se ha podido completar ninguna ruta.")
-            return
+            continue
 
         # Encontrar el que tiene mayor eficiencia
         ganador = max(resultados_simulacion, key=lambda x: x['eficiencia'])
