@@ -1,12 +1,12 @@
 {
   "id_escenario": 3,
   "nombre": "Ruteo Complejo",
-  "descripcion": "Grafo con múltiples caminos similares y calles cortadas (null). Evalúa la robustez topologica.",
+  "descripcion": "Grafo con múltiples caminos similares y calles cortadas (null). Evalúa la robustez topologica. Pedidos con igual beneficio pero diferente volumen para demostrar diferencias greedy vs DP.",
   "pedidos": [
-    {"id": "P1", "peso": 5, "beneficio": 20, "destino": 1},
-    {"id": "P2", "peso": 5, "beneficio": 20, "destino": 2},
-    {"id": "P3", "peso": 5, "beneficio": 20, "destino": 3},
-    {"id": "P4", "peso": 5, "beneficio": 20, "destino": 4}
+    {"id": "P1", "peso": 5, "volumen": 2, "beneficio": 20, "destino": 1},
+    {"id": "P2", "peso": 5, "volumen": 8, "beneficio": 20, "destino": 2},
+    {"id": "P3", "peso": 5, "volumen": 3, "beneficio": 20, "destino": 3},
+    {"id": "P4", "peso": 5, "volumen": 6, "beneficio": 20, "destino": 4}
   ],
   "matriz_adyacencia": [
     [0, 10, null, null, 30],

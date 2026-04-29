@@ -1,26 +1,26 @@
 {
   "id_escenario": 5,
   "nombre": "Alcala de Henares (Caso Realista)",
-  "descripcion": "Mapa completo de 12 nodos simulando el tráfico real asimétrico del municipio.",
+  "descripcion": "Mapa completo de 12 nodos simulando el tráfico real asimétrico del municipio. Pedidos con peso y volumen independientes para demostrar cuándo DP supera al voraz.",
   "pedidos": [
-    {"id": "P1", "peso": 3, "beneficio": 20, "destino": 1},
-    {"id": "P2", "peso": 10, "beneficio": 15, "destino": 2},
-    {"id": "P3", "peso": 2, "beneficio": 25, "destino": 4},
-    {"id": "P4", "peso": 5, "beneficio": 30, "destino": 9},
-    {"id": "P5", "peso": 20, "beneficio": 60, "destino": 5},
-    {"id": "P6", "peso": 8, "beneficio": 35, "destino": 10}
+    {"id": "P1", "peso": 3,  "volumen": 8,  "beneficio": 20, "destino": 1},
+    {"id": "P2", "peso": 10, "volumen": 4,  "beneficio": 15, "destino": 2},
+    {"id": "P3", "peso": 2,  "volumen": 2,  "beneficio": 25, "destino": 4},
+    {"id": "P4", "peso": 5,  "volumen": 5,  "beneficio": 30, "destino": 9},
+    {"id": "P5", "peso": 20, "volumen": 20, "beneficio": 60, "destino": 5},
+    {"id": "P6", "peso": 8,  "volumen": 3,  "beneficio": 35, "destino": 10}
   ],
   "matriz_adyacencia": [
-    [ 0,   15,  10,   12,   8,  14,  11,   9,   6,  18,  16,   13], 
-    [20,    0,   8, null,  12,  18,  15,  10,  14,   7,   4, null], 
-    [10,    6,   0,    7,   5,  12,   9,   8,   7,  11,   8,   10], 
-    [12, null,   7,    0,   9,   8,  14,  16,  15,  22,  18,    3], 
-    [ 8,   10,   5,    9,   0,   6,   4,   8,  11,  15,  12,   11], 
-    [11,   13,   9,   14,   4,   5,   0,   6,  12,  16,  11,   15], 
-    [ 9,   12,   8,   16,   8,  11,   6,   0,   5,  14,   9,   18], 
-    [ 6,   15,   7,   15,  11,  18,  12,   5,   0,   9,  12,   17], 
-    [18,    9,  11,   22,  15,  20,  16,  14,   9,   0,   5,   24], 
-    [16,    5,   8,   18,  12,  15,  11,   9,  12,   4,   0,   19], 
+    [ 0,   15,  10,   12,   8,  14,  11,   9,   6,  18,  16,   13],
+    [20,    0,   8, null,  12,  18,  15,  10,  14,   7,   4, null],
+    [10,    6,   0,    7,   5,  12,   9,   8,   7,  11,   8,   10],
+    [12, null,   7,    0,   9,   8,  14,  16,  15,  22,  18,    3],
+    [ 8,   10,   5,    9,   0,   6,   4,   8,  11,  15,  12,   11],
+    [11,   13,   9,   14,   4,   5,   0,   6,  12,  16,  11,   15],
+    [ 9,   12,   8,   16,   8,  11,   6,   0,   5,  14,   9,   18],
+    [ 6,   15,   7,   15,  11,  18,  12,   5,   0,   9,  12,   17],
+    [18,    9,  11,   22,  15,  20,  16,  14,   9,   0,   5,   24],
+    [16,    5,   8,   18,  12,  15,  11,   9,  12,   4,   0,   19],
     [13, null,  10,    4,  11,   9,  15,  18,  17,  24,  19,    0]
   ]
 }

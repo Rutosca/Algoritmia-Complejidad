@@ -1,11 +1,11 @@
 {
   "id_escenario": 4,
   "nombre": "Escenario de Poda",
-  "descripcion": "Distancias asimétricas extremas. Diseñado para verificar empíricamente que la poda reduce los nodos explorados.",
+  "descripcion": "Distancias asimétricas extremas. Diseñado para verificar empíricamente que la poda reduce los nodos explorados. Pedidos con igual beneficio y peso diferente para testear el desempate por volumen.",
   "pedidos": [
-    {"id": "P1", "peso": 10, "beneficio": 30, "destino": 1},
-    {"id": "P2", "peso": 10, "beneficio": 30, "destino": 2},
-    {"id": "P3", "peso": 10, "beneficio": 30, "destino": 3}
+    {"id": "P1", "peso": 10, "volumen": 4, "beneficio": 30, "destino": 1},
+    {"id": "P2", "peso": 10, "volumen": 8, "beneficio": 30, "destino": 2},
+    {"id": "P3", "peso": 10, "volumen": 6, "beneficio": 30, "destino": 3}
   ],
   "matriz_adyacencia": [
     [0, 5, 5, 5],

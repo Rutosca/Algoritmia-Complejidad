@@ -1,13 +1,13 @@
 {
   "id_escenario": 2,
   "nombre": "Capacidad Critica",
-  "descripcion": "Muchos pedidos de pesos variados. Fuerza al algoritmo DP a descartar los bultos ineficientes cuando se evaluan vehiculos pequeños.",
+  "descripcion": "Pedidos con distintas combinaciones peso/volumen. Algunos pesan poco pero son voluminosos, forzando al algoritmo a elegir entre restricciones.",
   "pedidos": [
-    {"id": "P1", "peso": 12, "beneficio": 100, "destino": 1},
-    {"id": "P2", "peso": 4,  "beneficio": 40,  "destino": 2},
-    {"id": "P3", "peso": 5,  "beneficio": 50,  "destino": 3},
-    {"id": "P4", "peso": 6,  "beneficio": 65,  "destino": 4},
-    {"id": "P5", "peso": 20, "beneficio": 200, "destino": 2}
+    {"id": "P1", "peso": 12, "volumen": 3,  "beneficio": 100, "destino": 1},
+    {"id": "P2", "peso": 4,  "volumen": 10, "beneficio": 40,  "destino": 2},
+    {"id": "P3", "peso": 5,  "volumen": 5,  "beneficio": 50,  "destino": 3},
+    {"id": "P4", "peso": 6,  "volumen": 8,  "beneficio": 65,  "destino": 4},
+    {"id": "P5", "peso": 20, "volumen": 2,  "beneficio": 200, "destino": 2}
   ],
   "matriz_adyacencia": [
     [0, 5, 5, 5, 5],

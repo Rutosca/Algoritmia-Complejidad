@@ -3,9 +3,9 @@
   "nombre": "Escenario Basico",
   "descripcion": "Pocos pedidos (N<=5) y grafo simple. Ideal para trazar el flujo completo del programa desde el main.",
   "pedidos": [
-    {"id": "P1", "peso": 2, "beneficio": 10, "destino": 1},
-    {"id": "P2", "peso": 3, "beneficio": 15, "destino": 2},
-    {"id": "P3", "peso": 4, "beneficio": 20, "destino": 3}
+    {"id": "P1", "peso": 2, "volumen": 3, "beneficio": 10, "destino": 1},
+    {"id": "P2", "peso": 3, "volumen": 2, "beneficio": 15, "destino": 2},
+    {"id": "P3", "peso": 4, "volumen": 5, "beneficio": 20, "destino": 3}
   ],
   "matriz_adyacencia": [
     [0, 10, 15, 20],
