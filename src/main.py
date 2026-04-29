@@ -19,12 +19,12 @@ def simulacion_mejor_vehiculo():
         [16,   5,   8,  18,  12,  15,  11,   9,  12,   4,   0,  19], # 9: Cuatro Caños
         [13, inf,  10,   4,  11,   9,  15,  18,  17,  24,  19,   0]  # 10: Hospital
     ]
-
-    # Catálogo de vehículos y sus capacidades 
+    
+    # Catálogo de vehículos, sus capacidades, y penalización por minuto 
     vehiculos = {
-        "A pie": 5,
-        "Patinete": 15,
-        "Furgoneta": 50
+        "A pie": {"capacidad": 5, "coste_min": 0.0},
+        "Patinete": {"capacidad": 15, "coste_min": 0.25},
+        "Furgoneta": {"capacidad": 50, "coste_min": 1.50}
     }
 
     # Pedidos disponibles (ID, peso, beneficio, nodo_destino)
@@ -44,11 +44,13 @@ def simulacion_mejor_vehiculo():
     # Complejidad: O(n³), se ejecuta UNA SOLA VEZ.
     # ========================================================
     dist_fw, pred_fw = floyd_warshall(matriz_alcala)
-
+    
     print("=== INICIANDO SIMULACIÓN DE REPARTO PARA RUBEN ===\n")
 
     # BUCLE PRINCIPAL: Probar cada vehículo
-    for nombre, capacidad in vehiculos.items():
+    for nombre, vehiculo_data in vehiculos.items():
+        capacidad = vehiculo_data["capacidad"]
+        penalizacion_minuto = vehiculo_data["coste_min"]
         print(f"Probando {nombre} (Capacidad: {capacidad}kg)...")
 
         # PASO A: SELECCIÓN (DP) 
@@ -71,14 +73,17 @@ def simulacion_mejor_vehiculo():
         tiempo_total, ruta = calcular_ruta_optima_tsp(dist_fw, nodos_ruta)
 
         # PASO C: MÉTRICA DE EFICIENCIA (€/min)
-        eficiencia = beneficio / tiempo_total if tiempo_total > 0 else 0
+        gastos_ruta = tiempo_total * penalizacion_minuto
+        beneficio_neto = beneficio - gastos_ruta
+        
+        eficiencia = beneficio_neto / tiempo_total if tiempo_total > 0 else 0
 
         # PASO D: EXPANSIÓN DE RUTA (Floyd-Warshall)
         # Reconstruye el trayecto físico completo insertando los nodos
         # intermedios que Floyd-Warshall utilizó para optimizar cada tramo.
         # Se almacena para análisis detallado pero no se muestra en pantalla.
         ruta_expandida = expandir_ruta_completa(ruta, pred_fw)
-
+        print(ruta_expandida)
         resultados_simulacion.append({
             "vehiculo": nombre,
             "beneficio": beneficio,
@@ -87,7 +92,6 @@ def simulacion_mejor_vehiculo():
             "ruta": ruta,                   # Nodos clave (TSP)
             "ruta_expandida": ruta_expandida # Trayecto físico completo (FW)
         })
-        
         print(f"   [OK] Beneficio: {beneficio} EUR | Tiempo: {tiempo_total}min | Eficiencia: {eficiencia:.2f} EUR/min")
 
     # 2. COMPARACIÓN FINAL 
