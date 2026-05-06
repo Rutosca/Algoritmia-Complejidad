@@ -1,0 +1,18 @@
+{
+  "id_escenario": 6,
+  "nombre": "Coste de Vehiculo",
+  "descripcion": "Pedidos ligeros y proximos al almacen. El coste operativo (1.5 EUR/min) de la furgoneta encarece rutas largas: ir a pie puede ganar en eficiencia neta aunque lleve menos pedidos.",
+  "pedidos": [
+    {"id": "P1", "peso": 4, "volumen": 6, "beneficio": 55, "destino": 1},
+    {"id": "P2", "peso": 3, "volumen": 5, "beneficio": 22, "destino": 2},
+    {"id": "P3", "peso": 10, "volumen": 12, "beneficio": 18, "destino": 3},
+    {"id": "P4", "peso": 8,  "volumen": 9,  "beneficio": 12, "destino": 4}
+  ],
+  "matriz_adyacencia": [
+    [ 0,  3,  4, 22, 25],
+    [ 3,  0,  2, 20, 23],
+    [ 4,  2,  0, 19, 22],
+    [22, 20, 19,  0,  2],
+    [25, 23, 22,  2,  0]
+  ]
+}

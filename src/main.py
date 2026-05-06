@@ -40,59 +40,73 @@ def seleccionar_escenario(archivos):
     return archivos
 
 
+# Factor global de coste de embalaje (EUR por unidad de volumen)
+FACTOR_EMBALAJE = 0.5
+
+
 def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, metodo):
     """
-    Ejecuta el pipeline completo (selección + TSP + expansión) para un vehículo
-    usando el método de selección indicado ('DP' o 'Greedy').
+    Ejecuta el pipeline completo (selección + TSP + expansión) para un vehículo.
 
-    :return: dict con los resultados, o None si el vehículo no puede completar ningún pedido.
+    Beneficio neto = beneficio_bruto - coste_embalaje - coste_ruta
+      · coste_embalaje = FACTOR_EMBALAJE * volumen_total_cargado
+      · coste_ruta     = coste_por_minuto * tiempo_ruta  (varía por vehículo)
+
+    :return: dict con resultados, o None si no hay pedidos que quepan.
     """
     capacidad_peso    = vehiculo_data["capacidad_peso"]
     capacidad_volumen = vehiculo_data["capacidad_volumen"]
+    coste_por_minuto  = vehiculo_data.get("coste_por_minuto", 0.0)
 
-    # Preparar lista unificada (id, peso, volumen, beneficio)
     pedidos_para_alg = [
         (p['id'], p['peso'], p['volumen'], p['beneficio'])
         for p in pedidos_totales
     ]
 
-    # PASO A: SELECCIÓN
+    # PASO A: SELECCIÓN (maximiza beneficio bruto)
     if metodo == 'DP':
-        beneficio, seleccionados = seleccion_pedidos_dp(
+        beneficio_bruto, seleccionados = seleccion_pedidos_dp(
             pedidos_para_alg, capacidad_peso, capacidad_volumen
         )
-    else:  # Greedy
-        beneficio, seleccionados = seleccion_pedidos_greedy(
+    else:
+        beneficio_bruto, seleccionados = seleccion_pedidos_greedy(
             pedidos_para_alg, capacidad_peso, capacidad_volumen
         )
 
     if not seleccionados:
         return None
 
-    # PASO B: RUTA (TSP Backtracking)
-    nodos_ruta = [0]  # Siempre empezar en almacén
-    for sel in seleccionados:
-        for p in pedidos_totales:
-            if p['id'] == sel:
-                nodos_ruta.append(p['destino'])
+    # PASO B: COSTE DE EMBALAJE (proporcional al volumen total cargado)
+    id_set        = set(seleccionados)
+    volumen_usado = sum(p['volumen'] for p in pedidos_totales if p['id'] in id_set)
+    coste_embalaje = volumen_usado * FACTOR_EMBALAJE
 
+    # PASO C: RUTA (TSP Backtracking)
+    nodos_ruta = [0] + [p['destino'] for p in pedidos_totales if p['id'] in id_set]
     tiempo_total, ruta = calcular_ruta_optima_tsp(dist_fw, nodos_ruta)
 
-    # PASO C: EFICIENCIA
-    eficiencia = beneficio / tiempo_total if tiempo_total > 0 else 0
+    # PASO D: COSTE OPERATIVO DEL VEHÍCULO (combustible / desgaste / alquiler)
+    coste_ruta = coste_por_minuto * tiempo_total
 
-    # PASO D: EXPANSIÓN DE RUTA (Floyd-Warshall)
+    # PASO E: BENEFICIO NETO y EFICIENCIA
+    beneficio_neto = beneficio_bruto - coste_embalaje - coste_ruta
+    eficiencia     = beneficio_neto / tiempo_total if tiempo_total > 0 else 0
+
+    # PASO F: EXPANSIÓN DE RUTA (Floyd-Warshall)
     ruta_expandida = expandir_ruta_completa(ruta, pred_fw)
 
     return {
-        "vehiculo":      nombre,
-        "metodo":        metodo,
-        "beneficio":     beneficio,
-        "tiempo":        tiempo_total,
-        "eficiencia":    eficiencia,
-        "seleccionados": seleccionados,
-        "ruta":          ruta,
-        "ruta_expandida": ruta_expandida
+        "vehiculo":        nombre,
+        "metodo":          metodo,
+        "beneficio_bruto": beneficio_bruto,
+        "coste_embalaje":  coste_embalaje,
+        "coste_ruta":      coste_ruta,
+        "beneficio":       beneficio_neto,
+        "tiempo":          tiempo_total,
+        "eficiencia":      eficiencia,
+        "seleccionados":   seleccionados,
+        "ruta":            ruta,
+        "ruta_expandida":  ruta_expandida,
     }
 
 
@@ -101,10 +115,11 @@ def simulacion_mejor_vehiculo():
     # DEFINICIÓN DEL CATÁLOGO DE VEHÍCULOS
     # Ahora con capacidad_peso Y capacidad_volumen
     # ========================================================
+    # coste_por_minuto: coste operativo EUR/min (combustible, desgaste, alquiler)
     vehiculos = {
-        "A pie":    {"capacidad_peso": 5,  "capacidad_volumen": 8},
-        "Patinete": {"capacidad_peso": 15, "capacidad_volumen": 20},
-        "Furgoneta":{"capacidad_peso": 50, "capacidad_volumen": 60},
+        "A pie":    {"capacidad_peso":  5, "capacidad_volumen":  8, "coste_por_minuto": 0.0},
+        "Patinete": {"capacidad_peso": 15, "capacidad_volumen": 20, "coste_por_minuto": 0.3},
+        "Furgoneta":{"capacidad_peso": 50, "capacidad_volumen": 60, "coste_por_minuto": 1.5},
     }
 
     directorio_escenarios = os.path.join(
@@ -148,9 +163,11 @@ def simulacion_mejor_vehiculo():
 
         # BUCLE PRINCIPAL: Probar cada vehículo con AMBOS métodos
         for nombre, vehiculo_data in vehiculos.items():
-            cap_p = vehiculo_data["capacidad_peso"]
-            cap_v = vehiculo_data["capacidad_volumen"]
-            print(f"\n  Vehículo: {nombre} (Peso máx: {cap_p}kg | Volumen máx: {cap_v}u)")
+            cap_p  = vehiculo_data["capacidad_peso"]
+            cap_v  = vehiculo_data["capacidad_volumen"]
+            cpm    = vehiculo_data["coste_por_minuto"]
+            print(f"\n  Vehículo: {nombre} "
+                  f"(Peso máx: {cap_p}kg | Volumen máx: {cap_v}u | Coste: {cpm} EUR/min)")
             print(f"  {'-'*54}")
 
             for metodo in ('DP', 'Greedy'):
@@ -164,8 +181,11 @@ def simulacion_mejor_vehiculo():
                 print(
                     f"    [{metodo:6}] "
                     f"Pedidos: {res['seleccionados']} | "
-                    f"Beneficio: {res['beneficio']} EUR | "
-                    f"Tiempo: {res['tiempo']} min | "
+                    f"Neto: {res['beneficio']:.1f} EUR "
+                    f"(bruto {res['beneficio_bruto']} "
+                    f"- embalaje {res['coste_embalaje']:.1f} "
+                    f"- ruta {res['coste_ruta']:.1f}) | "
+                    f"Tiempo: {res['tiempo']:.1f} min | "
                     f"Eficiencia: {res['eficiencia']:.2f} EUR/min"
                 )
 
