@@ -52,7 +52,7 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
       · coste_embalaje = FACTOR_EMBALAJE * volumen_total_cargado
       · coste_ruta     = coste_por_minuto * tiempo_ruta  (varía por vehículo)
 
-    :return: dict con resultados, o None si no hay pedidos que quepan.
+    :return: dict con resulta4dos, o None si no hay pedidos que quepan.
     """
     from multi_viaje import repartir_todos_pedidos
 
@@ -79,7 +79,16 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
         seleccionados.extend(ids_tanda)
         id_set = set(ids_tanda)
         volumen_usado = sum(p['volumen'] for p in pedidos_totales if p['id'] in id_set)
-        coste_embalaje += volumen_usado * FACTOR_EMBALAJE
+        
+        tanda_coste_embalaje = volumen_usado * FACTOR_EMBALAJE
+        tanda_coste_ruta = coste_por_minuto * tanda['tiempo']
+        tanda_neto = tanda['beneficio'] - tanda_coste_embalaje - tanda_coste_ruta
+        
+        tanda['coste_embalaje'] = tanda_coste_embalaje
+        tanda['coste_ruta'] = tanda_coste_ruta
+        tanda['neto'] = tanda_neto
+        
+        coste_embalaje += tanda_coste_embalaje
 
     beneficio_bruto = resultado_multi['beneficio_total']
     tiempo_total = resultado_multi['tiempo_total']
@@ -108,7 +117,8 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
         "ruta":            ruta,
         "ruta_expandida":  ruta_expandida,
         "num_tandas":      resultado_multi['num_tandas'],
-        "sin_entregar":    resultado_multi['pedidos_sin_entregar']
+        "sin_entregar":    resultado_multi['pedidos_sin_entregar'],
+        "tandas":          tandas
     }
 
 
@@ -180,16 +190,12 @@ def simulacion_mejor_vehiculo():
                     print(f"    [{metodo:6}] Sin pedidos que quepan.")
                     continue
 
-                print(
-                    f"    [{metodo:6}] "
-                    f"Pedidos: {res['seleccionados']} | "
-                    f"Neto: {res['beneficio']:.1f} EUR "
-                    f"(bruto {res['beneficio_bruto']} "
-                    f"- embalaje {res['coste_embalaje']:.1f} "
-                    f"- ruta {res['coste_ruta']:.1f}) | "
-                    f"Tiempo: {res['tiempo']:.1f} min | "
-                    f"Eficiencia: {res['eficiencia']:.2f} EUR/min"
-                )
+                print(f"    [{metodo:6}] TOTAL -> Bruto: {res['beneficio_bruto']:.1f} - Emb: {res['coste_embalaje']:.1f} - Veh: {res['coste_ruta']:.1f} = Neto: {res['beneficio']:.1f} EUR | Tiempo: {res['tiempo']:.1f} min | Eficiencia Global: {res['eficiencia']:.2f} EUR/min")
+                print(f"             (Se realizaron {res['num_tandas']} tandas de reparto)")
+                for tanda in res['tandas']:
+                    print(f"               - Tanda {tanda['numero']}: Pedidos {tanda['pedidos']} | Bruto: {tanda['beneficio']:.1f} - Emb: {tanda['coste_embalaje']:.1f} - Veh: {tanda['coste_ruta']:.1f} = Neto: {tanda['neto']:.1f} EUR | Tiempo: {tanda['tiempo']:.1f} min")
+                if res['sin_entregar']:
+                    print(f"               * Pedidos intransportables: {res['sin_entregar']}")
 
                 if metodo == 'DP':
                     resultados_dp.append(res)
