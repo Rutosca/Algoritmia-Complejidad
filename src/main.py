@@ -2,9 +2,9 @@ import json
 import os
 
 from dp_seleccion import seleccion_pedidos_dp
-from greedy_seleccion import seleccion_pedidos_greedy
+from mejoras.greedy_seleccion import seleccion_pedidos_greedy
 from backtracking_ruta import calcular_ruta_optima_tsp
-from floyd_warshall import floyd_warshall, expandir_ruta_completa, nombres_ruta
+from mejoras.floyd_warshall import floyd_warshall, expandir_ruta_completa, nombres_ruta
 
 
 def cargar_escenario(ruta_archivo):
@@ -54,7 +54,7 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
 
     :return: dict con resultados, o None si no hay pedidos que quepan.
     """
-    from multi_viaje import repartir_todos_pedidos
+    from mejoras.multi_viaje import repartir_todos_pedidos
 
     capacidad_peso    = vehiculo_data["capacidad_peso"]
     capacidad_volumen = vehiculo_data["capacidad_volumen"]
@@ -106,7 +106,7 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
     beneficio_neto = beneficio_bruto - coste_embalaje - coste_ruta
     eficiencia     = beneficio_neto / tiempo_total if tiempo_total > 0 else 0
 
-    # Retornamos la ruta de la última tanda como representativa (el main original no la imprime)
+    # Retornar la ruta de la última tanda como representativa (el main original no la imprime)
     ruta = tandas[-1]['ruta'] if tandas else []
     ruta_expandida = tandas[-1]['ruta_expandida'] if tandas else []
 
@@ -142,7 +142,7 @@ def simulacion_mejor_vehiculo():
     }
 
     directorio_escenarios = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "data\escenarios"
+        os.path.dirname(os.path.abspath(__file__)), "data", "escenarios"
     )
 
     if not os.path.exists(directorio_escenarios):
@@ -175,8 +175,9 @@ def simulacion_mejor_vehiculo():
         nodo_A = 4 # Magna
         nodo_B = 5 # Espartales
         print(f"  [!] ALERTA LOGÍSTICA: Calle cortada entre el nodo {nodo_A} y el nodo {nodo_B}")
-        escenario['matriz_adyacencia'][nodo_A][nodo_B] = float('inf')
-        escenario['matriz_adyacencia'][nodo_B][nodo_A] = float('inf')
+        if len(escenario['matriz_adyacencia']) > max(nodo_A, nodo_B):
+            escenario['matriz_adyacencia'][nodo_A][nodo_B] = float('inf')
+            escenario['matriz_adyacencia'][nodo_B][nodo_A] = float('inf')
         
         print(f"{'='*60}")
 

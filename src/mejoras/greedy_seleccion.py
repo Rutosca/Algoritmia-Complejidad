@@ -1,6 +1,6 @@
 # src/greedy_seleccion.py
 
-def _quicksort_pedidos(pedidos, inicio, fin):
+def _quicksort_pedidos(pedidos, inicio, fin, metricas):
     """
     Implementación recursiva de Quicksort in-place sobre la lista de pedidos.
 
@@ -13,6 +13,8 @@ def _quicksort_pedidos(pedidos, inicio, fin):
     """
     if inicio >= fin:
         return
+        
+    metricas['nodos_explorados'] += 1
 
     pivote = pedidos[fin]
     _, peso_p, volumen_p, beneficio_p = pivote
@@ -32,8 +34,8 @@ def _quicksort_pedidos(pedidos, inicio, fin):
     pedidos[i + 1], pedidos[fin] = pedidos[fin], pedidos[i + 1]
     particion = i + 1
 
-    _quicksort_pedidos(pedidos, inicio, particion - 1)
-    _quicksort_pedidos(pedidos, particion + 1, fin)
+    _quicksort_pedidos(pedidos, inicio, particion - 1, metricas)
+    _quicksort_pedidos(pedidos, particion + 1, fin, metricas)
 
 
 def seleccion_pedidos_greedy(pedidos, capacidad_peso, capacidad_volumen):
@@ -45,16 +47,20 @@ def seleccion_pedidos_greedy(pedidos, capacidad_peso, capacidad_volumen):
     :param pedidos: Lista de tuplas (id_pedido, peso, volumen, beneficio)
     :param capacidad_peso:    Capacidad máxima de peso del vehículo
     :param capacidad_volumen: Capacidad máxima de volumen del vehículo
-    :return: Tupla (beneficio_total, lista_ids_seleccionados)
+    :return: Tupla (beneficio_total, lista_ids_seleccionados, metricas)
 
     Complejidad: O(n log n) por el Quicksort + O(n) por el barrido = O(n log n)
     """
+    import time
+    inicio_tiempo = time.perf_counter()
+    metricas = {'nodos_explorados': 0, 'ramas_podadas': 0, 'tiempo_ms': 0.0}
+
     if not pedidos or capacidad_peso <= 0 or capacidad_volumen <= 0:
-        return 0, []
+        return 0, [], metricas
 
     # Trabajamos con copia para no alterar la lista original
     pedidos_ordenados = list(pedidos)
-    _quicksort_pedidos(pedidos_ordenados, 0, len(pedidos_ordenados) - 1)
+    _quicksort_pedidos(pedidos_ordenados, 0, len(pedidos_ordenados) - 1, metricas)
 
     peso_restante    = capacidad_peso
     volumen_restante = capacidad_volumen
@@ -62,10 +68,14 @@ def seleccion_pedidos_greedy(pedidos, capacidad_peso, capacidad_volumen):
     seleccionados    = []
 
     for id_pedido, peso_i, volumen_i, beneficio_i in pedidos_ordenados:
+        metricas['nodos_explorados'] += 1
         if peso_i <= peso_restante and volumen_i <= volumen_restante:
             seleccionados.append(id_pedido)
             beneficio_total  += beneficio_i
             peso_restante    -= peso_i
             volumen_restante -= volumen_i
 
-    return beneficio_total, seleccionados
+    fin_tiempo = time.perf_counter()
+    metricas['tiempo_ms'] = (fin_tiempo - inicio_tiempo) * 1000
+
+    return beneficio_total, seleccionados, metricas

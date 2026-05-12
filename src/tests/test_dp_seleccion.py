@@ -21,7 +21,7 @@ def test_seleccion_basica():
     # P1 + P2 = peso 5, vol 5 -> Beneficio = 25 (Cabe perfecto)
     # P3 = peso 5, vol 2 -> Beneficio = 20
     # Por tanto, debe elegir P1 y P2.
-    beneficio, seleccion = seleccion_pedidos_dp(pedidos, cap_peso, cap_vol)
+    beneficio, seleccion, metricas = seleccion_pedidos_dp(pedidos, cap_peso, cap_vol)
     
     assert beneficio == 25, f"Error: beneficio esperado 25, obtenido {beneficio}"
     assert set(seleccion) == {"P1", "P2"}, f"Error: selección esperada {{'P1', 'P2'}}, obtenida {set(seleccion)}"
@@ -32,7 +32,7 @@ def test_sin_pedidos_que_quepan():
     pedidos = [
         ("P1", 10, 10, 50)
     ]
-    beneficio, seleccion = seleccion_pedidos_dp(pedidos, 5, 5)
+    beneficio, seleccion, metricas = seleccion_pedidos_dp(pedidos, 5, 5)
     
     assert beneficio == 0, f"Error: beneficio esperado 0, obtenido {beneficio}"
     assert seleccion == [], f"Error: selección esperada [], obtenida {seleccion}"
@@ -40,7 +40,7 @@ def test_sin_pedidos_que_quepan():
 
 def test_mochila_vacia():
     """Prueba comportamiento con lista de pedidos vacía."""
-    beneficio, seleccion = seleccion_pedidos_dp([], 10, 10)
+    beneficio, seleccion, metricas = seleccion_pedidos_dp([], 10, 10)
     assert beneficio == 0, f"Error: beneficio esperado 0, obtenido {beneficio}"
     assert seleccion == [], f"Error: selección esperada [], obtenida {seleccion}"
     print("[OK] test_mochila_vacia superado")

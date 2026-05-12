@@ -13,10 +13,14 @@
 #   - Con Greedy: O(T * n log n)
 #   En el peor caso T = n (una tanda por pedido), pero en la práctica T << n.
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from dp_seleccion import seleccion_pedidos_dp
-from greedy_seleccion import seleccion_pedidos_greedy
+from mejoras.greedy_seleccion import seleccion_pedidos_greedy
 from backtracking_ruta import calcular_ruta_optima_tsp
-from floyd_warshall import expandir_ruta_completa
+from mejoras.floyd_warshall import expandir_ruta_completa
 
 
 def repartir_todos_pedidos(pedidos, capacidad_peso, capacidad_volumen,
@@ -63,11 +67,11 @@ def repartir_todos_pedidos(pedidos, capacidad_peso, capacidad_volumen,
 
         # ── SELECCIÓN DE TANDA ──────────────────────────────────────────────
         if metodo == 'DP':
-            beneficio_tanda, ids_tanda = seleccion_pedidos_dp(
+            beneficio_tanda, ids_tanda, met_sel = seleccion_pedidos_dp(
                 pedidos_alg, capacidad_peso, capacidad_volumen
             )
         else:
-            beneficio_tanda, ids_tanda = seleccion_pedidos_greedy(
+            beneficio_tanda, ids_tanda, met_sel = seleccion_pedidos_greedy(
                 pedidos_alg, capacidad_peso, capacidad_volumen
             )
 
@@ -84,7 +88,7 @@ def repartir_todos_pedidos(pedidos, capacidad_peso, capacidad_volumen,
             p['destino'] for p in pendientes if p['id'] in id_set
         ]
 
-        tiempo_tanda, ruta_tanda = calcular_ruta_optima_tsp(dist_fw, nodos_tanda)
+        tiempo_tanda, ruta_tanda, met_tsp = calcular_ruta_optima_tsp(dist_fw, nodos_tanda)
         ruta_expandida = expandir_ruta_completa(ruta_tanda, pred_fw)
 
         # ── ACUMULAR RESULTADOS ─────────────────────────────────────────────
@@ -98,6 +102,8 @@ def repartir_todos_pedidos(pedidos, capacidad_peso, capacidad_volumen,
             'beneficio':      beneficio_tanda,
             'ruta':           ruta_tanda,
             'ruta_expandida': ruta_expandida,
+            'metricas_seleccion': met_sel,
+            'metricas_tsp': met_tsp,
         })
 
         # ── ELIMINAR PEDIDOS YA ENTREGADOS ──────────────────────────────────

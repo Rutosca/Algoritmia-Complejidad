@@ -8,17 +8,20 @@ def seleccion_pedidos_dp(pedidos, capacidad_peso, capacidad_volumen):
     :param pedidos: Lista de tuplas (id_pedido, peso, volumen, beneficio)
     :param capacidad_peso:    Capacidad máxima de peso del vehículo (entero)
     :param capacidad_volumen: Capacidad máxima de volumen del vehículo (entero)
-    :return: Tupla (beneficio_maximo, lista_ids_seleccionados)
+    :return: Tupla (beneficio_maximo, lista_ids_seleccionados, metricas)
 
     Complejidad temporal: O(n * W * V)
     Complejidad espacial: O(n * W * V)
     donde n = número de pedidos, W = cap. peso, V = cap. volumen.
     """
+    import time
+    inicio_tiempo = time.perf_counter()
+    nodos_explorados = 0
     # ========================================================
     # 1. VALIDACIÓN DE ENTRADA
     # ========================================================
     if not pedidos or capacidad_peso <= 0 or capacidad_volumen <= 0:
-        return 0, []
+        return 0, [], {'nodos_explorados': 0, 'ramas_podadas': 0, 'tiempo_ms': 0.0}
 
     n = len(pedidos)
 
@@ -47,6 +50,7 @@ def seleccion_pedidos_dp(pedidos, capacidad_peso, capacidad_volumen):
                     opcion_si_meter = beneficio_i + dp[i - 1][w - peso_i][v - volumen_i]
 
                 dp[i][w][v] = max(opcion_no_meter, opcion_si_meter)
+                nodos_explorados += 1
 
     beneficio_maximo = dp[n][capacidad_peso][capacidad_volumen]
 
@@ -66,4 +70,11 @@ def seleccion_pedidos_dp(pedidos, capacidad_peso, capacidad_volumen):
             v_actual -= volumen_i
 
     pedidos_seleccionados.reverse()
-    return beneficio_maximo, pedidos_seleccionados
+    
+    fin_tiempo = time.perf_counter()
+    metricas = {
+        'nodos_explorados': nodos_explorados,
+        'ramas_podadas': 0,
+        'tiempo_ms': (fin_tiempo - inicio_tiempo) * 1000
+    }
+    return beneficio_maximo, pedidos_seleccionados, metricas
