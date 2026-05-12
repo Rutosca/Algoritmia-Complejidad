@@ -52,13 +52,14 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
       · coste_embalaje = FACTOR_EMBALAJE * volumen_total_cargado
       · coste_ruta     = coste_por_minuto * tiempo_ruta  (varía por vehículo)
 
-    :return: dict con resulta4dos, o None si no hay pedidos que quepan.
+    :return: dict con resultados, o None si no hay pedidos que quepan.
     """
     from multi_viaje import repartir_todos_pedidos
 
     capacidad_peso    = vehiculo_data["capacidad_peso"]
     capacidad_volumen = vehiculo_data["capacidad_volumen"]
     coste_por_minuto  = vehiculo_data.get("coste_por_minuto", 0.0)
+    velocidad         = vehiculo_data.get("velocidad", 1.0) # <--- NUEVO: Extraemos la velocidad
 
     # PASO A: MULTI-VIAJE (repartir todos los pedidos en tandas sucesivas)
     resultado_multi = repartir_todos_pedidos(
@@ -80,10 +81,14 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
         id_set = set(ids_tanda)
         volumen_usado = sum(p['volumen'] for p in pedidos_totales if p['id'] in id_set)
         
+        # <--- NUEVO: Ajustamos el tiempo base por la velocidad del vehículo --->
+        tiempo_real_tanda = tanda['tiempo'] * velocidad 
+        
         tanda_coste_embalaje = volumen_usado * FACTOR_EMBALAJE
-        tanda_coste_ruta = coste_por_minuto * tanda['tiempo']
+        tanda_coste_ruta = coste_por_minuto * tiempo_real_tanda # <--- MODIFICADO: Usa tiempo real
         tanda_neto = tanda['beneficio'] - tanda_coste_embalaje - tanda_coste_ruta
         
+        tanda['tiempo'] = tiempo_real_tanda # <--- MODIFICADO: Actualizado para los prints
         tanda['coste_embalaje'] = tanda_coste_embalaje
         tanda['coste_ruta'] = tanda_coste_ruta
         tanda['neto'] = tanda_neto
@@ -91,7 +96,8 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
         coste_embalaje += tanda_coste_embalaje
 
     beneficio_bruto = resultado_multi['beneficio_total']
-    tiempo_total = resultado_multi['tiempo_total']
+    # <--- NUEVO: Ajustamos el tiempo total --->
+    tiempo_total = resultado_multi['tiempo_total'] * velocidad 
 
     # PASO D: COSTE OPERATIVO DEL VEHÍCULO (combustible / desgaste / alquiler)
     coste_ruta = coste_por_minuto * tiempo_total
@@ -125,13 +131,14 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
 def simulacion_mejor_vehiculo():
     # ========================================================
     # DEFINICIÓN DEL CATÁLOGO DE VEHÍCULOS
-    # Ahora con capacidad_peso Y capacidad_volumen
+    # Ahora con capacidad_peso, capacidad_volumen Y velocidad
     # ========================================================
     # coste_por_minuto: coste operativo EUR/min (combustible, desgaste, alquiler)
+    # velocidad: 1.0 es el tiempo normal, 0.2 es que tarda una quinta parte
     vehiculos = {
-        "A pie":    {"capacidad_peso":  5, "capacidad_volumen":  8, "coste_por_minuto": 0.0},
-        "Patinete": {"capacidad_peso": 15, "capacidad_volumen": 20, "coste_por_minuto": 0.3},
-        "Furgoneta":{"capacidad_peso": 50, "capacidad_volumen": 60, "coste_por_minuto": 1.5},
+        "A pie":    {"capacidad_peso":  5, "capacidad_volumen":  8, "coste_por_minuto": 0.0, "velocidad": 1.0}, # <--- NUEVO
+        "Patinete": {"capacidad_peso": 15, "capacidad_volumen": 20, "coste_por_minuto": 0.3, "velocidad": 0.5}, # <--- NUEVO
+        "Furgoneta":{"capacidad_peso": 50, "capacidad_volumen": 60, "coste_por_minuto": 1.5, "velocidad": 0.2}, # <--- NUEVO
     }
 
     directorio_escenarios = os.path.join(
@@ -162,6 +169,15 @@ def simulacion_mejor_vehiculo():
         print(f"\n{'='*60}")
         print(f"  ESCENARIO: {escenario['nombre']}")
         print(f"  {escenario['descripcion']}")
+        
+        # <--- NUEVO: SIMULACIÓN DE CALLE CORTADA --->
+        # Descomenta y cambia estos nodos si quieres cortar dinámicamente otra calle
+        nodo_A = 4 # Magna
+        nodo_B = 5 # Espartales
+        print(f"  [!] ALERTA LOGÍSTICA: Calle cortada entre el nodo {nodo_A} y el nodo {nodo_B}")
+        escenario['matriz_adyacencia'][nodo_A][nodo_B] = float('inf')
+        escenario['matriz_adyacencia'][nodo_B][nodo_A] = float('inf')
+        
         print(f"{'='*60}")
 
         # ====================================================
@@ -175,11 +191,13 @@ def simulacion_mejor_vehiculo():
 
         # BUCLE PRINCIPAL: Probar cada vehículo con AMBOS métodos
         for nombre, vehiculo_data in vehiculos.items():
-            cap_p  = vehiculo_data["capacidad_peso"]
-            cap_v  = vehiculo_data["capacidad_volumen"]
-            cpm    = vehiculo_data["coste_por_minuto"]
+            cap_p = vehiculo_data["capacidad_peso"]
+            cap_v = vehiculo_data["capacidad_volumen"]
+            cpm   = vehiculo_data["coste_por_minuto"]
+            vel   = vehiculo_data["velocidad"] # <--- NUEVO
+            
             print(f"\n  Vehículo: {nombre} "
-                  f"(Peso máx: {cap_p}kg | Volumen máx: {cap_v}u | Coste: {cpm} EUR/min)")
+                  f"(Peso máx: {cap_p}kg | Volumen máx: {cap_v}u | Coste: {cpm} EUR/min | Multiplicador vel: x{vel})")
             print(f"  {'-'*54}")
 
             for metodo in ('DP', 'Greedy'):
@@ -217,7 +235,7 @@ def simulacion_mejor_vehiculo():
             print(
                 f"  [{metodo:6}] Mejor vehiculo: {ganador['vehiculo'].upper()} -> "
                 f"{ganador['eficiencia']:.2f} EUR/min "
-                f"(beneficio {ganador['beneficio']} EUR en {ganador['tiempo']} min)"
+                f"(beneficio {ganador['beneficio']:.1f} EUR en {ganador['tiempo']:.1f} min)"
             )
 
         # Diferencia entre métodos (vehículo más eficiente de cada uno)
@@ -226,9 +244,9 @@ def simulacion_mejor_vehiculo():
             mejor_greedy = max(resultados_greedy, key=lambda x: x['eficiencia'])
             diff = mejor_dp['beneficio'] - mejor_greedy['beneficio']
             if diff > 0:
-                print(f"\n  >> DP obtiene {diff} EUR mas que Greedy en el mejor caso.")
+                print(f"\n  >> DP obtiene {diff:.1f} EUR mas que Greedy en el mejor caso.")
             elif diff < 0:
-                print(f"\n  >> Greedy obtiene {-diff} EUR mas que DP en el mejor caso.")
+                print(f"\n  >> Greedy obtiene {-diff:.1f} EUR mas que DP en el mejor caso.")
             else:
                 print(f"\n  >> Ambos metodos alcanzan el mismo beneficio optimo.")
 
