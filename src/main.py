@@ -142,7 +142,7 @@ def simulacion_mejor_vehiculo():
     }
 
     directorio_escenarios = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "escenarios"
+        os.path.dirname(os.path.abspath(__file__)), "..", "data\escenarios"
     )
 
     if not os.path.exists(directorio_escenarios):
