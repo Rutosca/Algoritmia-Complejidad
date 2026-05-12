@@ -46,7 +46,7 @@ FACTOR_EMBALAJE = 0.5
 
 def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, metodo):
     """
-    Ejecuta el pipeline completo (selección + TSP + expansión) para un vehículo.
+    Ejecuta el pipeline completo usando MULTI-VIAJE (repartiendo todo lo posible en tandas).
 
     Beneficio neto = beneficio_bruto - coste_embalaje - coste_ruta
       · coste_embalaje = FACTOR_EMBALAJE * volumen_total_cargado
@@ -54,36 +54,35 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
 
     :return: dict con resultados, o None si no hay pedidos que quepan.
     """
+    from multi_viaje import repartir_todos_pedidos
+
     capacidad_peso    = vehiculo_data["capacidad_peso"]
     capacidad_volumen = vehiculo_data["capacidad_volumen"]
     coste_por_minuto  = vehiculo_data.get("coste_por_minuto", 0.0)
 
-    pedidos_para_alg = [
-        (p['id'], p['peso'], p['volumen'], p['beneficio'])
-        for p in pedidos_totales
-    ]
+    # PASO A: MULTI-VIAJE (repartir todos los pedidos en tandas sucesivas)
+    resultado_multi = repartir_todos_pedidos(
+        pedidos_totales, capacidad_peso, capacidad_volumen,
+        dist_fw, pred_fw, metodo=metodo
+    )
 
-    # PASO A: SELECCIÓN (maximiza beneficio bruto)
-    if metodo == 'DP':
-        beneficio_bruto, seleccionados = seleccion_pedidos_dp(
-            pedidos_para_alg, capacidad_peso, capacidad_volumen
-        )
-    else:
-        beneficio_bruto, seleccionados = seleccion_pedidos_greedy(
-            pedidos_para_alg, capacidad_peso, capacidad_volumen
-        )
-
-    if not seleccionados:
+    tandas = resultado_multi['tandas']
+    if not tandas:
         return None
 
-    # PASO B: COSTE DE EMBALAJE (proporcional al volumen total cargado)
-    id_set        = set(seleccionados)
-    volumen_usado = sum(p['volumen'] for p in pedidos_totales if p['id'] in id_set)
-    coste_embalaje = volumen_usado * FACTOR_EMBALAJE
+    # PASO B: Calcular Costes Acumulados
+    seleccionados = []
+    coste_embalaje = 0.0
 
-    # PASO C: RUTA (TSP Backtracking)
-    nodos_ruta = [0] + [p['destino'] for p in pedidos_totales if p['id'] in id_set]
-    tiempo_total, ruta = calcular_ruta_optima_tsp(dist_fw, nodos_ruta)
+    for tanda in tandas:
+        ids_tanda = tanda['pedidos']
+        seleccionados.extend(ids_tanda)
+        id_set = set(ids_tanda)
+        volumen_usado = sum(p['volumen'] for p in pedidos_totales if p['id'] in id_set)
+        coste_embalaje += volumen_usado * FACTOR_EMBALAJE
+
+    beneficio_bruto = resultado_multi['beneficio_total']
+    tiempo_total = resultado_multi['tiempo_total']
 
     # PASO D: COSTE OPERATIVO DEL VEHÍCULO (combustible / desgaste / alquiler)
     coste_ruta = coste_por_minuto * tiempo_total
@@ -92,8 +91,9 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
     beneficio_neto = beneficio_bruto - coste_embalaje - coste_ruta
     eficiencia     = beneficio_neto / tiempo_total if tiempo_total > 0 else 0
 
-    # PASO F: EXPANSIÓN DE RUTA (Floyd-Warshall)
-    ruta_expandida = expandir_ruta_completa(ruta, pred_fw)
+    # Retornamos la ruta de la última tanda como representativa (el main original no la imprime)
+    ruta = tandas[-1]['ruta'] if tandas else []
+    ruta_expandida = tandas[-1]['ruta_expandida'] if tandas else []
 
     return {
         "vehiculo":        nombre,
@@ -107,6 +107,8 @@ def ejecutar_vehiculo(nombre, vehiculo_data, pedidos_totales, dist_fw, pred_fw, 
         "seleccionados":   seleccionados,
         "ruta":            ruta,
         "ruta_expandida":  ruta_expandida,
+        "num_tandas":      resultado_multi['num_tandas'],
+        "sin_entregar":    resultado_multi['pedidos_sin_entregar']
     }
 
 
