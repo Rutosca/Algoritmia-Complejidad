@@ -1,0 +1,61 @@
+# UAH-Route: Optimización Logística Urbana
+
+Este proyecto es parte de la práctica de la asignatura **Algoritmia y Complejidad (Curso 2025-26)** de la Universidad de Alcalá (UAH). Consiste en el desarrollo de un sistema para resolver un problema de logística urbana con una flota limitada, buscando optimizar tanto la selección de pedidos como la planificación de rutas para entregas.
+
+## Descripción del Problema
+
+El entorno de la logística urbana plantea problemas de gran complejidad computacional. Este sistema aborda dos subproblemas fundamentales interconectados:
+1. **Selección Óptima de Pedidos:** ¿Qué pedidos se deben aceptar para maximizar el beneficio dadas las restricciones de capacidad de carga (peso y volumen) de los vehículos? Implementado mediante Programación Dinámica (Mochila 0/1) y con una alternativa Voraz (Greedy) para comparar la eficiencia y óptimo local frente al global.
+2. **Planificación de Rutas Óptimas:** ¿En qué orden se deben visitar los puntos de entrega de los pedidos seleccionados minimizando la distancia o tiempo de recorrido? Implementado mediante Backtracking con estrategias de poda (TSP), respaldado por el pre-cálculo de distancias a través del algoritmo de Floyd-Warshall.
+
+El sistema también calcula el **Beneficio Neto** al descontar costes operativos por minuto de cada vehículo y el coste de embalaje basado en el volumen total de los pedidos, determinando la eficiencia global (EUR/minuto).
+
+## Estructura del Proyecto
+
+El proyecto se compone de los siguientes directorios y ficheros principales:
+
+- `src/`: Contiene el código fuente de la aplicación.
+  - `main.py`: Script principal que orquesta la carga de escenarios, ejecución de algoritmos y comparación de resultados (DP vs Greedy y distintos vehículos).
+  - `dp_seleccion.py`: Implementación de Programación Dinámica para la selección de pedidos.
+  - `backtracking_ruta.py`: Implementación del cálculo de la ruta óptima mediante Backtracking con poda.
+  - `greedy_seleccion.py`: Algoritmo voraz para la selección de pedidos (mejora para comparar frente a DP).
+  - `floyd_warshall.py`: Algoritmo de Floyd-Warshall para el precálculo de distancias mínimas entre todos los nodos del grafo (mejora avanzada).
+  - `multi_viaje.py`: Algoritmos extendidos para múltiples rutas o vehículos.
+  - `mapa_alcala.html`: Visualización del mapa de la simulación.
+- `escenarios/`: Escenarios de prueba definidos en formato JSON que presentan diferentes retos logísticos:
+  - `escenario_basico.json`: Nodos y pedidos simples.
+  - `escenario_capacidadCritica.json`: Reto de capacidad limitante de peso o volumen.
+  - `escenario_poda.json`: Reto para evaluar la eficiencia de la poda.
+  - `escenario_ruteoComplejo.json`: Grafo denso que requiere algoritmos exactos de ruta.
+  - `escenario_simulacionReal.json`: Situación aproximada a la vida real con costes y capacidades complejas.
+  - `escenario_coste_vehiculo.json`: Enfoque sobre la maximización de la eficiencia del vehículo.
+- `tests/`: Batería de pruebas.
+- `minutas/`: Documentos de seguimiento y control del proyecto.
+
+## Características Principales y Mejoras Implementadas
+
+- **Programación Dinámica (Mochila 0/1 Bidimensional):** Para optimizar la selección de carga con una capacidad máxima en peso y volumen, garantizando el máximo beneficio posible para cada vehículo.
+- **Backtracking con Poda (TSP):** Recorriendo todas las permutaciones de rutas posibles limitando el espacio de búsqueda.
+- **Algoritmos Voraces vs DP:** Comparativa directa del enfoque Voraz frente a la precisión de la Programación Dinámica evaluando qué vehículo es más eficiente con cada método.
+- **Floyd-Warshall:** Utilizado para preprocesar y precalcular los caminos más cortos entre todos los puntos de entrega en grafos complejos, optimizando de manera vital el rendimiento general del ruteo del TSP.
+- **Catálogo de Vehículos con Costes Operativos:** "A pie", "Patinete" y "Furgoneta", cada uno con restricciones de peso, volumen, y con un coste específico por minuto que obliga a evaluar el beneficio neto de forma realista.
+
+## Uso
+
+1. Asegúrate de tener **Python 3.x** instalado.
+2. Clona o descarga este repositorio y posiciónate en el directorio raíz.
+3. Ejecuta el script principal (`main.py`) para procesar los escenarios:
+
+```bash
+python src/main.py
+```
+
+4. Durante la ejecución se listarán los escenarios disponibles. Puedes teclear el número del escenario que desees probar, o `0` para ejecutarlos todos secuencialmente y ver el reporte de comparativas.
+
+## Requisitos
+
+- Python 3.x
+- `pypdf` u otras librerías para manipular documentos PDF si deseas ejecutar los scripts auxiliares (no estrictamente necesario para la simulación principal logística).
+
+## Contexto Académico
+Este proyecto responde a las especificaciones de la Práctica 4-5 del temario de la Universidad de Alcalá, evaluando directamente los **Temas 4 (Algoritmos de Programación Dinámica)** y **Tema 5 (Recursión Intensiva, Backtracking, Ramificación y Poda)**.
