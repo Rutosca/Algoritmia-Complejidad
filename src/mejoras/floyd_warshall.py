@@ -10,12 +10,14 @@ NOMBRES_NODOS = {
     2: "Estación",
     3: "Campus",
     4: "Magna",
-    5: "Ensanche",
-    6: "Chorrillo",
-    7: "Reyes Católicos",
-    8: "Nueva Alcalá",
-    9: "Cuatro Caños",
-    10: "Hospital",
+    5: "Espartales",
+    6: "Ensanche",
+    7: "Chorrillo",
+    8: "Reyes Católicos",
+    9: "Nueva Alcalá",
+    10: "Cuatro Caños",
+    11: "Hospital",
+    
 }
 
 
