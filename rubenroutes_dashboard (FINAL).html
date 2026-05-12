@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RubénRoutes · Centro de Operaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #060912;
+  --surf:     #0b1120;
+  --surf2:    #111929;
+  --border:   #1c2b45;
+  --border2:  #253550;
+  --amber:    #f59e0b;
+  --amber2:   #fbbf24;
+  --amberDim: #7a4f08;
+  --blue:     #3b82f6;
+  --cyan:     #06b6d4;
+  --green:    #22c55e;
+  --red:      #ef4444;
+  --orange:   #f97316;
+  --purple:   #a855f7;
+  --text:     #dce8f5;
+  --text2:    #7a92b5;
+  --text3:    #3a506a;
+  --mono:     'JetBrains Mono', monospace;
+  --disp:     'Barlow Condensed', sans-serif;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--disp); }
+
+/* ── LAYOUT ── */
+.app {
+  display:grid;
+  grid-template-rows:52px 1fr;
+  grid-template-columns:272px 1fr 312px;
+  height:100vh;
+}
+
+/* ── HEADER ── */
+header {
+  grid-column:1/-1;
+  background:var(--surf);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:14px; padding:0 18px;
+}
+.logo { font-family:var(--disp); font-weight:900; font-size:1.25rem; letter-spacing:.08em; color:var(--amber); text-transform:uppercase; }
+.logo span { color:var(--text3); font-weight:300; }
+.hdr-badge {
+  background:var(--surf2); border:1px solid var(--border); border-radius:3px;
+  padding:2px 8px; font-family:var(--mono); font-size:.62rem; color:var(--text2);
+  letter-spacing:.1em; text-transform:uppercase;
+}
+.hdr-badge.active { border-color:var(--amber); color:var(--amber); }
+.hdr-right { margin-left:auto; display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:.65rem; color:var(--text2); }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── PANELS ── */
+.left-panel, .right-panel {
+  background:var(--surf); overflow-y:auto; display:flex; flex-direction:column;
+}
+.left-panel { border-right:1px solid var(--border); }
+.right-panel { border-left:1px solid var(--border); }
+
+.graph-area { position:relative; overflow:hidden; background:var(--bg); }
+.graph-area::after {
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:5;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);
+}
+
+/* ── CUT MODE ── */
+.cut-item { display:flex; align-items:center; justify-content:space-between; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.3); border-radius:3px; padding:4px 7px; font-size:.6rem; gap:5px; }
+.cut-item span { color:var(--red); font-family:var(--mono); flex:1; }
+.btn-cut-active { border-color:var(--red) !important; color:var(--red) !important; background:rgba(239,68,68,.08) !important; }
+#gsvg.cut-crosshair { cursor:crosshair; }
+.nc-cut-selected { }
+
+/* ── CUT PANEL ── */
+#cut-panel {
+  display:none;
+  background:var(--surf2);
+  border:1px solid rgba(239,68,68,.35);
+  border-radius:4px;
+  padding:9px;
+  margin-bottom:6px;
+  animation:fadeIn .2s ease;
+}
+#cut-panel .section-title { margin-bottom:8px; color:var(--red); }
+#cut-panel .section-title::before { background:var(--red); }
+.cut-selects { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:7px; }
+.cut-selects .fld label { font-size:.52rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text2); display:block; margin-bottom:2px; }
+.cut-selects .fld select {
+  width:100%; background:var(--surf); border:1px solid var(--border); border-radius:3px;
+  padding:4px 6px; font-family:var(--mono); font-size:.63rem; color:var(--text); outline:none; transition:border-color .15s;
+}
+.cut-selects .fld select:focus { border-color:var(--red); }
+.cut-selects .fld select option { background:var(--surf); }
+.btn-apply-cut {
+  width:100%; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.45);
+  border-radius:3px; color:var(--red); font-family:var(--disp); font-weight:700;
+  font-size:.68rem; letter-spacing:.08em; text-transform:uppercase;
+  padding:6px; cursor:pointer; transition:all .15s;
+}
+.btn-apply-cut:hover { background:rgba(239,68,68,.22); border-color:var(--red); }
+.cut-dir-row { display:flex; gap:4px; margin-bottom:7px; }
+.cut-dir-btn {
+  flex:1; background:var(--surf); border:1px solid var(--border); border-radius:3px;
+  padding:4px 3px; cursor:pointer; font-family:var(--mono); font-size:.58rem;
+  color:var(--text2); text-align:center; transition:all .15s;
+}
+.cut-dir-btn:hover { border-color:var(--border2); color:var(--text); }
+.cut-dir-btn.on { border-color:var(--red); color:var(--red); background:rgba(239,68,68,.08); }
+
+
+/* ── PANEL SECTIONS ── */
+.section { border-bottom:1px solid var(--border); padding:12px 14px; }
+.section-title {
+  font-family:var(--disp); font-weight:700; font-size:.62rem; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--text2); margin-bottom:10px;
+  display:flex; align-items:center; gap:6px;
+}
+.section-title::before { content:''; width:10px; height:1px; background:var(--amber); flex-shrink:0; }
+
+/* ── VEHICLE CARDS ── */
+.veh-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+.veh-card {
+  background:var(--surf2); border:1px solid var(--border); border-radius:4px;
+  padding:8px 5px; cursor:pointer; text-align:center; transition:all .15s;
+}
+.veh-card:hover { border-color:var(--border2); }
+.veh-card.on { border-color:var(--amber); background:rgba(245,158,11,.08); }
+.veh-icon { font-size:1.3rem; }
+.veh-name { font-family:var(--disp); font-weight:700; font-size:.68rem; color:var(--text); margin-top:2px; }
+.veh-cap { font-family:var(--mono); font-size:.52rem; color:var(--text2); margin-top:2px; }
+
+/* ── METHOD TOGGLE ── */
+.method-row { display:flex; gap:5px; }
+.mth-btn {
+  flex:1; background:var(--surf2); border:1px solid var(--border); border-radius:3px;
+  padding:6px 4px; cursor:pointer; font-family:var(--disp); font-weight:700;
+  font-size:.72rem; letter-spacing:.06em; color:var(--text2); text-align:center; transition:all .15s;
+}
+.mth-btn:hover { color:var(--text); border-color:var(--border2); }
+.mth-btn.on { border-color:var(--cyan); color:var(--cyan); background:rgba(6,182,212,.08); }
+
+/* ── TOGGLE SWITCH ── */
+.toggle-row { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin-top:8px; }
+.sw { width:30px; height:16px; background:var(--border2); border-radius:8px; position:relative; transition:background .2s; flex-shrink:0; }
+.sw::after { content:''; position:absolute; top:3px; left:3px; width:10px; height:10px; border-radius:50%; background:var(--text3); transition:all .2s; }
+.sw.on { background:rgba(245,158,11,.25); border:1px solid var(--amber); }
+.sw.on::after { left:16px; background:var(--amber); }
+.toggle-label { font-size:.72rem; color:var(--text2); }
+
+/* ── ORDERS ── */
+.orders-list { display:flex; flex-direction:column; gap:3px; max-height:240px; overflow-y:auto; }
+.order-item {
+  background:var(--surf2); border:1px solid var(--border); border-radius:3px;
+  padding:6px 8px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:7px;
+  transition:border-color .15s;
+}
+.order-item.delivered { border-color:rgba(34,197,94,.4); }
+.order-item.cant { opacity:.45; border-color:rgba(239,68,68,.4); }
+.oid { font-family:var(--mono); font-size:.6rem; color:var(--amber); font-weight:700; }
+.oinfo { font-size:.68rem; }
+.oinfo small { display:block; font-family:var(--mono); font-size:.55rem; color:var(--text2); margin-top:1px; }
+.obenefit { font-family:var(--mono); font-size:.65rem; font-weight:700; color:var(--green); }
+.odel { cursor:pointer; color:var(--text3); font-size:.75rem; transition:color .15s; padding:0 2px; }
+.odel:hover { color:var(--red); }
+
+/* ── ADD FORM ── */
+.add-form { background:var(--surf2); border:1px solid var(--border); border-radius:4px; padding:9px; margin-top:7px; display:none; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:7px; }
+.fld label { display:block; font-size:.55rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text2); margin-bottom:2px; }
+.fld input, .fld select {
+  width:100%; background:var(--surf); border:1px solid var(--border); border-radius:3px;
+  padding:4px 7px; font-family:var(--mono); font-size:.68rem; color:var(--text); outline:none; transition:border-color .15s;
+}
+.fld input:focus, .fld select:focus { border-color:var(--amber); }
+.fld select option { background:var(--surf); }
+
+/* ── BUTTONS ── */
+.btn { display:inline-block; border:none; border-radius:3px; cursor:pointer; font-family:var(--disp); font-weight:700; text-transform:uppercase; transition:all .15s; text-align:center; }
+.btn-primary { background:var(--amber); color:#000; padding:8px 12px; font-size:.75rem; letter-spacing:.1em; width:100%; display:block; }
+.btn-primary:hover { background:var(--amber2); }
+.btn-primary:disabled { background:var(--amberDim); cursor:not-allowed; color:#555; }
+.btn-sm { background:transparent; border:1px solid var(--border2); color:var(--text2); padding:5px 8px; font-size:.62rem; letter-spacing:.08em; }
+.btn-sm:hover { border-color:var(--text2); color:var(--text); }
+.btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text3); padding:3px 8px; font-size:.6rem; }
+.btn-ghost:hover { border-color:var(--border2); color:var(--text2); }
+
+/* ── SIM CONTROLS ── */
+.sim-row { display:flex; gap:5px; margin-top:6px; }
+.speed-row { display:flex; align-items:center; gap:7px; margin-top:7px; font-family:var(--mono); font-size:.6rem; color:var(--text2); }
+.speed-row input[type=range] { flex:1; appearance:none; height:2px; background:var(--border2); border-radius:2px; outline:none; cursor:pointer; }
+.speed-row input[type=range]::-webkit-slider-thumb { appearance:none; width:10px; height:10px; border-radius:50%; background:var(--amber); cursor:pointer; }
+
+/* ── RESULTS ── */
+.metric-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.metric { background:var(--surf2); border:1px solid var(--border); border-radius:4px; padding:8px 9px; }
+.metric-label { font-size:.55rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text2); margin-bottom:3px; }
+.metric-val { font-family:var(--mono); font-size:1.05rem; font-weight:700; color:var(--amber); }
+.metric-val.green { color:var(--green); }
+.metric-val.cyan { color:var(--cyan); }
+.metric-val.blue { color:var(--blue); }
+.metric-sub { font-family:var(--mono); font-size:.52rem; color:var(--text3); margin-top:2px; }
+
+/* ── TRIP CARDS ── */
+.trip-card { background:var(--surf2); border:1px solid var(--border); border-radius:4px; padding:9px 10px; margin-bottom:5px; animation:fadeIn .3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+.trip-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+.trip-num { font-family:var(--disp); font-weight:700; font-size:.72rem; display:flex; align-items:center; gap:6px; }
+.trip-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.route-disp { font-family:var(--mono); font-size:.58rem; line-height:1.55; word-break:break-all; margin:3px 0; }
+.cost-tags { display:flex; flex-wrap:wrap; gap:3px; margin-top:5px; }
+.ctag { font-family:var(--mono); font-size:.55rem; padding:2px 5px; border-radius:2px; background:var(--surf); border:1px solid var(--border); }
+.ctag.pos { color:var(--green); } .ctag.neg { color:var(--red); }
+
+/* ── COST BREAKDOWN ── */
+.cmp-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid var(--border); font-size:.68rem; }
+.cmp-row:last-child { border-bottom:none; }
+.cmp-lbl { color:var(--text2); }
+.cmp-val { font-family:var(--mono); font-weight:700; }
+.cmp-val.pos { color:var(--green); } .cmp-val.neg { color:var(--red); } .cmp-val.neu { color:var(--text); }
+
+/* ── PROGRESS ── */
+.prog-bar { height:2px; background:var(--border); border-radius:2px; overflow:hidden; margin-top:6px; }
+.prog-fill { height:100%; background:var(--amber); border-radius:2px; transition:width .3s; }
+
+/* ── OVERLAY ── */
+.graph-overlay {
+  position:absolute; bottom:12px; left:12px; z-index:20;
+  background:rgba(11,17,32,.92); border:1px solid var(--border2); border-radius:4px;
+  padding:9px 12px; font-family:var(--mono); font-size:.63rem; color:var(--text2);
+  min-width:180px; display:none; backdrop-filter:blur(4px);
+}
+.ov-step { color:var(--amber); font-weight:700; font-size:.68rem; }
+.ov-loc { color:var(--cyan); margin-top:2px; }
+.ov-data { color:var(--text2); margin-top:4px; }
+
+/* ── NODE TOOLTIP ── */
+.node-tip {
+  position:absolute; background:rgba(11,17,32,.96); border:1px solid var(--border2);
+  border-radius:4px; padding:7px 10px; font-size:.65rem; pointer-events:none;
+  opacity:0; transition:opacity .12s; z-index:30; max-width:190px; line-height:1.5;
+}
+.node-tip.vis { opacity:1; }
+.node-tip strong { display:block; color:var(--amber); font-family:var(--disp); font-size:.78rem; font-weight:700; margin-bottom:3px; }
+
+/* ── LOG ── */
+.log-wrap { flex:1; padding:8px 12px; overflow-y:auto; }
+.log-entry { font-family:var(--mono); font-size:.58rem; line-height:1.65; border-left:2px solid var(--border); padding-left:7px; margin-bottom:3px; color:var(--text2); }
+.log-entry.info { border-color:var(--cyan); color:var(--cyan); }
+.log-entry.ok   { border-color:var(--green); color:var(--green); }
+.log-entry.warn { border-color:var(--amber); color:var(--amber); }
+.log-entry.err  { border-color:var(--red); color:var(--red); }
+
+/* ── COMPARE ── */
+.cmp-section { padding:10px 14px; border-bottom:1px solid var(--border); }
+.cmp-bar-wrap { background:var(--surf2); border:1px solid var(--border); border-radius:3px; padding:8px 10px; margin-bottom:5px; }
+.cmp-bar-title { font-size:.65rem; font-weight:700; letter-spacing:.06em; margin-bottom:5px; }
+.cmp-bar-track { height:6px; background:var(--border); border-radius:3px; overflow:hidden; margin-top:4px; }
+.cmp-bar-fill  { height:100%; border-radius:3px; transition:width .6s ease; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align:center; padding:20px 12px; color:var(--text3); font-size:.72rem; }
+.empty-icon { font-size:1.8rem; margin-bottom:7px; }
+
+/* ── GRAPH SVG ── */
+#gsvg { width:100%; height:100%; display:block; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Rubén<span>Routes</span></div>
+  <div class="hdr-badge">Alcalá de Henares · 12 nodos</div>
+  <div class="hdr-badge active" id="hdr-veh">🚐 Furgoneta</div>
+  <div class="hdr-badge" id="hdr-method">DP · Multi-viaje</div>
+  <div class="hdr-right">
+    <div class="status-dot"></div>
+    <span>SISTEMA ACTIVO</span>
+    <span id="hdr-clock" style="color:var(--text3)">--:--:--</span>
+  </div>
+</header>
+
+<!-- LEFT PANEL -->
+<aside class="left-panel">
+
+  <!-- Vehicle -->
+  <div class="section">
+    <div class="section-title">Vehículo</div>
+    <div class="veh-grid" id="veh-grid"></div>
+  </div>
+
+  <!-- Algorithm -->
+  <div class="section">
+    <div class="section-title">Selección de Pedidos</div>
+    <div class="method-row">
+      <button class="mth-btn on" data-m="DP" onclick="setMethod('DP')">DP · Óptimo</button>
+      <button class="mth-btn" data-m="Greedy" onclick="setMethod('Greedy')">Greedy · Rápido</button>
+    </div>
+    <label class="toggle-row" onclick="toggleMulti()">
+      <div class="sw on" id="multi-sw"></div>
+      <span class="toggle-label">Multi-viaje (reparto completo)</span>
+    </label>
+  </div>
+
+  <!-- Red Viaria / Cortar Calles -->
+  <div class="section">
+    <div class="section-title">Red Viaria</div>
+    <button class="btn btn-sm" id="cut-btn" onclick="toggleCutPanel()" style="width:100%;margin-bottom:6px;letter-spacing:.06em;">✂ Cortar Calle</button>
+
+    <!-- Desplegable para cortar calle manualmente -->
+    <div id="cut-panel">
+      <div class="section-title" style="font-size:.58rem;">Seleccionar Conexión</div>
+      <div class="cut-selects">
+        <div class="fld"><label>Nodo Origen</label><select id="cut-from"></select></div>
+        <div class="fld"><label>Nodo Destino</label><select id="cut-to"></select></div>
+      </div>
+      <div style="font-size:.55rem;color:var(--text2);margin-bottom:6px;">Dirección del corte:</div>
+      <div class="cut-dir-row">
+        <button class="cut-dir-btn on" id="cut-dir-uni" onclick="setCutDir('uni')">→ Solo ida</button>
+        <button class="cut-dir-btn" id="cut-dir-bi" onclick="setCutDir('bi')">↔ Ambos sentidos</button>
+      </div>
+      <button class="btn-apply-cut" onclick="applyCutFromPanel()">✂ Aplicar Corte</button>
+    </div>
+
+    <div id="cuts-list" style="display:flex;flex-direction:column;gap:3px;margin-top:4px;"></div>
+  </div>
+
+  <!-- Orders -->
+  <div class="section" style="flex:1">
+    <div class="section-title" style="justify-content:space-between;margin-bottom:8px;">
+      <span>Pedidos <span id="order-count" style="color:var(--amber)">(0)</span></span>
+      <button class="btn btn-ghost" id="add-btn" onclick="toggleAddForm()">+ Añadir</button>
+    </div>
+    <div class="orders-list" id="orders-list"></div>
+    <div class="add-form" id="add-form">
+      <div class="form-grid">
+        <div class="fld"><label>ID</label><input id="f-id" placeholder="P11" maxlength="5"></div>
+        <div class="fld"><label>Destino</label><select id="f-dest"></select></div>
+        <div class="fld"><label>Peso kg</label><input id="f-peso" type="number" min="1" max="50" value="2"></div>
+        <div class="fld"><label>Volumen u</label><input id="f-vol" type="number" min="1" max="60" value="3"></div>
+        <div class="fld" style="grid-column:1/-1"><label>Beneficio €</label><input id="f-ben" type="number" min="1" max="300" value="20"></div>
+      </div>
+      <button class="btn btn-primary" style="font-size:.68rem;padding:6px;" onclick="addOrder()">Añadir Pedido</button>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="section">
+    <button class="btn btn-primary" id="run-btn" onclick="runSim()">▶ Ejecutar Simulación</button>
+    <div class="sim-row">
+      <button class="btn btn-sm" id="pause-btn" onclick="togglePause()" style="flex:1" disabled>⏸ Pausar</button>
+      <button class="btn btn-sm" id="reset-btn" onclick="resetSim()" style="flex:1" disabled>↺ Reset</button>
+      <button class="btn btn-sm" onclick="exportJSON()" title="Exportar JSON para Python" style="padding:5px 7px">⬇ JSON</button>
+    </div>
+    <div class="speed-row">
+      <span>Vel.</span>
+      <input type="range" min="80" max="1400" value="550" step="70" id="speed-sl" oninput="setSpeed(this.value)">
+      <span id="speed-lbl" style="min-width:36px">550ms</span>
+    </div>
+  </div>
+
+</aside>
+
+<!-- GRAPH CENTER -->
+<main class="graph-area">
+  <svg id="gsvg" viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="f-amber"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="f-cyan"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="f-blur"><feGaussianBlur stdDeviation="7"/></filter>
+      <marker id="arr-dim" markerWidth="5" markerHeight="4" refX="4.5" refY="2" orient="auto">
+        <path d="M0,0 L0,4 L5,2 z" fill="#1c2b45" fill-opacity=".7"/>
+      </marker>
+    </defs>
+    <g id="g-grid"></g>
+    <g id="g-edges"></g>
+    <g id="g-routes"></g>
+    <g id="g-cuts"></g>
+    <g id="g-nodes"></g>
+    <g id="g-vehicle"></g>
+  </svg>
+  <div class="graph-overlay" id="g-overlay">
+    <div class="ov-step" id="ov-step">—</div>
+    <div class="ov-loc" id="ov-loc">—</div>
+    <div class="ov-data">⏱ <span id="ov-time">0</span> min &nbsp;·&nbsp; 💶 <span id="ov-eur">0</span> €</div>
+    <div class="prog-bar" style="width:158px;margin-top:7px;"><div class="prog-fill" id="ov-prog" style="width:0%"></div></div>
+  </div>
+  <div class="node-tip" id="ntip"></div>
+</main>
+
+<!-- RIGHT PANEL -->
+<aside class="right-panel">
+
+  <!-- Metrics -->
+  <div class="section">
+    <div class="section-title">Resultados</div>
+    <div id="empty-res" class="empty-state">
+      <div class="empty-icon">📦</div>
+      Configura los pedidos y ejecuta la simulación.
+    </div>
+    <div id="metrics" style="display:none;"></div>
+  </div>
+
+  <!-- Trips -->
+  <div class="section" id="sec-trips" style="display:none;">
+    <div class="section-title">Tandas de Reparto</div>
+    <div id="trips-list"></div>
+  </div>
+
+  <!-- Cost breakdown -->
+  <div class="section" id="sec-cost" style="display:none;">
+    <div class="section-title">Desglose Económico</div>
+    <div id="cost-brkd"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-wrap" id="log-wrap">
+    <div class="section-title" style="margin-bottom:6px;padding-top:2px;">Log del Sistema</div>
+  </div>
+
+</aside>
+
+
+</div><!-- .app -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════
+const INF = Infinity;
+
+const MATRIX = [
+  [ 0,  15, 10, 12,  8, 14, 11,  9,  6, 18, 16, 13],
+  [45,   0,  8, INF, 12, 18, 15, 10, 14,  7,  4, INF],
+  [10,   6,  0,  7,  5, 12,  9,  8,  7, 11,  8, 10],
+  [12, INF,  7,  0,  9,  8, 14, 16, 15, 22, 18,  3],
+  [ 8,  10,  5,  9,  0,  6,  4,  8, 11, 15, 12, 11],
+  [14,  16, 12,  8,  6,  0,  5, 11, 18, 20, 15,  9],
+  [11,  13,  9, 14,  4,  5,  0,  6, 12, 16, 11, 15],
+  [ 9,  12,  8, 16,  8, 11,  6,  0,  5, 14,  9, 18],
+  [ 6,  15,  7, 15, 11, 18, 12,  5,  0,  9, 12, 17],
+  [18,   9, 11, 22, 15, 20, 16, 14,  9,  0,  5, 24],
+  [16,   5,  8, 18, 12, 15, 11,  9, 12,  4,  0, 60],
+  [13, INF, 10,  4, 11,  9, 15, 18, 17, 24,  5,  0],
+];
+
+const NODES = [
+  {id:0,  name:'Garena',      short:'Almacén',  x:340, y:70,  desc:'Almacén Central · Origen'},
+  {id:1,  name:'Cervantes',   short:'Cervantes',x:420, y:210, desc:'Zona Cervantes'},
+  {id:2,  name:'Estación',    short:'Estación', x:370, y:295, desc:'Estación de Tren'},
+  {id:3,  name:'Campus',      short:'Campus',   x:620, y:185, desc:'Campus Universitario'},
+  {id:4,  name:'Magna',       short:'Magna',    x:490, y:255, desc:'Centro Comercial Magna'},
+  {id:5,  name:'Espartales',  short:'Espart.',  x:530, y:390, desc:'Barrio Espartales'},
+  {id:6,  name:'Ensanche',    short:'Ensanche', x:445, y:355, desc:'Ensanche Sur'},
+  {id:7,  name:'Chorrillo',   short:'Chorrill.',x:220, y:295, desc:'Barrio del Chorrillo'},
+  {id:8,  name:'Reyes Cat.',  short:'Reyes',    x:175, y:195, desc:'Reyes Católicos'},
+  {id:9,  name:'N. Alcalá',   short:'N.Alcalá', x:680, y:320, desc:'Nueva Alcalá'},
+  {id:10, name:'C. Caños',    short:'C.Caños',  x:280, y:145, desc:'Cuatro Caños'},
+  {id:11, name:'Hospital',    short:'Hospital', x:600, y:305, desc:'Hospital Universitario'},
+];
+
+const VEHICLES = {
+  'A pie':     {icon:'🚶', cpeso:5,  cvol:8,  cpm:0.0, vel:1.0, color:'#22c55e'},
+  'Patinete':  {icon:'🛴', cpeso:15, cvol:20, cpm:0.3, vel:0.5, color:'#06b6d4'},
+  'Furgoneta': {icon:'🚐', cpeso:50, cvol:60, cpm:1.5, vel:0.2, color:'#f59e0b'},
+};
+
+const EMBALAJE_FACTOR = 0.5;
+const TRIP_COLORS = ['#3b82f6','#06b6d4','#a855f7','#f97316','#ec4899','#84cc16'];
+
+const DEFAULT_ORDERS = [
+  {id:'P01', peso:2, volumen:3,  beneficio:25, destino:1,  cliente:'Farmacia Cervantes'},
+  {id:'P02', peso:1, volumen:2,  beneficio:15, destino:4,  cliente:'Bazar Magna'},
+  {id:'P03', peso:4, volumen:5,  beneficio:40, destino:7,  cliente:'Supermercado Chorrillo'},
+  {id:'P04', peso:2, volumen:2,  beneficio:20, destino:9,  cliente:'Tienda N. Alcalá'},
+  {id:'P05', peso:3, volumen:6,  beneficio:35, destino:3,  cliente:'Librería Campus'},
+  {id:'P06', peso:1, volumen:1,  beneficio:12, destino:5,  cliente:'Kiosko Espartales'},
+  {id:'P07', peso:5, volumen:4,  beneficio:50, destino:11, cliente:'Rest. Hospital'},
+  {id:'P08', peso:2, volumen:3,  beneficio:22, destino:8,  cliente:'Floristería Reyes'},
+  {id:'P09', peso:3, volumen:3,  beneficio:30, destino:6,  cliente:'Café Ensanche'},
+  {id:'P10', peso:1, volumen:2,  beneficio:18, destino:10, cliente:'Peluquería Caños'},
+];
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+const S = {
+  orders:   JSON.parse(JSON.stringify(DEFAULT_ORDERS)),
+  vehicle:  'Furgoneta',
+  method:   'DP',
+  multi:    true,
+  animating:false,
+  paused:   false,
+  speed:    550,
+  result:   null,
+  steps:    [],
+  stepIdx:  0,
+  timer:    null,
+  fwDist:   null,
+  fwPred:   null,
+  cutMode:  false,
+  cutFirst: null,
+  cuts:     [],
+};
+
+// ════════════════════════════════════════════════════════════
+// ALGORITHMS
+// ════════════════════════════════════════════════════════════
+
+function floydWarshall(mat) {
+  const n = mat.length;
+  const dist = mat.map(r => [...r]);
+  const pred = Array.from({length:n}, (_,i) =>
+    Array.from({length:n}, (_,j) => (i!==j && dist[i][j]!==INF) ? i : null)
+  );
+  for (let k=0; k<n; k++) {
+    for (let i=0; i<n; i++) {
+      if (dist[i][k]===INF) continue;
+      for (let j=0; j<n; j++) {
+        const nc = dist[i][k]+dist[k][j];
+        if (nc < dist[i][j]) { dist[i][j]=nc; pred[i][j]=pred[k][j]; }
+      }
+    }
+  }
+  return {dist, pred};
+}
+
+function rebuildPath(pred, o, d) {
+  if (o===d) return [o];
+  if (pred[o][d]===null) return [];
+  const p=[]; let node=d;
+  while (node!==o) {
+    p.push(node);
+    const prev=pred[o][node];
+    if (prev===null) return [];
+    node=prev;
+  }
+  p.push(o); p.reverse();
+  return p;
+}
+
+function expandRoute(route, pred) {
+  if (route.length<2) return [...route];
+  const out=[];
+  for (let i=0; i<route.length-1; i++) {
+    const seg=rebuildPath(pred, route[i], route[i+1]);
+    if (!seg.length) return [...route];
+    out.push(...seg.slice(0,-1));
+  }
+  out.push(route[route.length-1]);
+  return out;
+}
+
+function tsp(dist, nodes) {
+  // Deduplicate while preserving order
+  const seen=new Set(); const unique=[];
+  for (const n of nodes) { if (!seen.has(n)) { seen.add(n); unique.push(n); } }
+  const origin=unique[0];
+  const inter=unique.slice(1);
+  if (!inter.length) return {cost:0, route:[origin]};
+
+  let bestCost=INF, bestRoute=[];
+
+  function explore(cur, visited, route, cost) {
+    if (cost>=bestCost) return; // prune
+    if (visited.size===inter.length) {
+      const ret=dist[cur][origin];
+      if (ret!==INF) {
+        const total=cost+ret;
+        if (total<bestCost) { bestCost=total; bestRoute=[...route, origin]; }
+      }
+      return;
+    }
+    for (const nx of inter) {
+      if (!visited.has(nx)) {
+        const edge=dist[cur][nx];
+        if (edge!==INF) {
+          visited.add(nx); route.push(nx);
+          explore(nx, visited, route, cost+edge);
+          route.pop(); visited.delete(nx);
+        }
+      }
+    }
+  }
+
+  explore(origin, new Set(), [origin], 0);
+  return {cost: bestCost, route: bestRoute};
+}
+
+function selDP(orders, mW, mV) {
+  const cW=Math.min(mW,100), cV=Math.min(mV,100), n=orders.length;
+  // Build full table for backtracking
+  const dp=Array.from({length:n+1}, () =>
+    Array.from({length:cW+1}, () => new Float32Array(cV+1))
+  );
+  for (let i=1; i<=n; i++) {
+    const {peso:pw, volumen:pv, beneficio:pb}=orders[i-1];
+    for (let w=0; w<=cW; w++) {
+      for (let v=0; v<=cV; v++) {
+        dp[i][w][v]=dp[i-1][w][v];
+        if (pw<=w && pv<=v) {
+          const opt=pb+dp[i-1][w-pw][v-pv];
+          if (opt>dp[i][w][v]) dp[i][w][v]=opt;
+        }
+      }
+    }
+  }
+  const maxB=dp[n][cW][cV];
+  const sel=[]; let w=cW, v=cV;
+  for (let i=n; i>0; i--) {
+    if (dp[i][w][v]!==dp[i-1][w][v]) {
+      sel.push(orders[i-1].id);
+      w-=orders[i-1].peso; v-=orders[i-1].volumen;
+    }
+  }
+  sel.reverse();
+  return {beneficio:maxB, selected:sel};
+}
+
+function selGreedy(orders, mW, mV) {
+  const sorted=[...orders].sort((a,b)=> b.beneficio!==a.beneficio
+    ? b.beneficio-a.beneficio : (a.peso+a.volumen)-(b.peso+b.volumen));
+  let w=mW, v=mV, tot=0;
+  const sel=[];
+  for (const o of sorted) {
+    if (o.peso<=w && o.volumen<=v) {
+      sel.push(o.id); tot+=o.beneficio; w-=o.peso; v-=o.volumen;
+    }
+  }
+  return {beneficio:tot, selected:sel};
+}
+
+function computeTrip(orders, vehicle, method) {
+  const veh=VEHICLES[vehicle];
+  const fn=method==='DP' ? selDP : selGreedy;
+  const {beneficio:bruto, selected}=fn(orders, veh.cpeso, veh.cvol);
+  if (!selected.length) return null;
+  const idSet=new Set(selected);
+  const selOrd=orders.filter(o=>idSet.has(o.id));
+  const volUsed=selOrd.reduce((s,o)=>s+o.volumen,0);
+  const cosEmb=volUsed*EMBALAJE_FACTOR;
+  const nodes=[0, ...selOrd.map(o=>o.destino)];
+  const {cost:tiempoBase, route}=tsp(S.fwDist, nodes);
+  const tiempo=tiempoBase*(veh.vel||1.0);   // aplicar multiplicador de velocidad
+  const cosRuta=veh.cpm*tiempo;
+  const neto=bruto-cosEmb-cosRuta;
+  const expanded=expandRoute(route, S.fwPred);
+  return {orders:selected, time:tiempo, benefit:bruto, neto, cosEmb, cosRuta, route, expanded};
+}
+
+function runMultiTrip(allOrders, vehicle, method) {
+  let pending=[...allOrders];
+  const trips=[]; let tTime=0, tBenefit=0, tCosEmb=0, tCosRuta=0;
+  const cant=[];
+  while (pending.length>0) {
+    const t=computeTrip(pending, vehicle, method);
+    if (!t) { cant.push(...pending.map(o=>o.id)); break; }
+    t.number=trips.length+1;
+    trips.push(t);
+    tTime+=t.time; tBenefit+=t.benefit; tCosEmb+=t.cosEmb; tCosRuta+=t.cosRuta;
+    const idSet=new Set(t.orders);
+    pending=pending.filter(o=>!idSet.has(o.id));
+  }
+  const tNeto=tBenefit-tCosEmb-tCosRuta;
+  return {trips, totalTime:tTime, totalBenefit:tBenefit, totalNeto:tNeto,
+          totalCosEmb:tCosEmb, totalCosRuta:tCosRuta,
+          efficiency:tTime>0?tNeto/tTime:0, cant};
+}
+
+// ════════════════════════════════════════════════════════════
+// GRAPH
+// ════════════════════════════════════════════════════════════
+const NS='http://www.w3.org/2000/svg';
+function el(tag, attrs={}, parent) {
+  const e=document.createElementNS(NS, tag);
+  for (const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function shortenPts(x1,y1,x2,y2,r1=15,r2=18) {
+  const dx=x2-x1, dy=y2-y1, d=Math.sqrt(dx*dx+dy*dy);
+  if (d<1) return {x1,y1,x2,y2};
+  return {x1:x1+dx/d*r1, y1:y1+dy/d*r1, x2:x2-dx/d*r2, y2:y2-dy/d*r2};
+}
+
+function initGraph() {
+  // Grid
+  const gg=document.getElementById('g-grid');
+  for (let x=40;x<860;x+=60) el('line',{x1:x,y1:0,x2:x,y2:520,stroke:'#0c1525','stroke-width':'0.5'},gg);
+  for (let y=40;y<520;y+=60) el('line',{x1:0,y1:y,x2:860,y2:y,stroke:'#0c1525','stroke-width':'0.5'},gg);
+
+  // Base edges
+  const ge=document.getElementById('g-edges');
+  for (let i=0;i<12;i++) for (let j=0;j<12;j++) {
+    if (i===j||MATRIX[i][j]===INF) continue;
+    const n1=NODES[i], n2=NODES[j];
+    const w=MATRIX[i][j];
+    const color = w<8 ? '#152a1e' : w<=15 ? '#201a0d' : '#160e1a';
+    const sw    = w<8 ? 1.4 : w<=15 ? 1.0 : 0.7;
+    const hasMirror=MATRIX[j][i]!==INF;
+    const pts=shortenPts(n1.x,n1.y,n2.x,n2.y);
+    let d;
+    if (hasMirror) {
+      const dx=pts.x2-pts.x1, dy=pts.y2-pts.y1, len=Math.sqrt(dx*dx+dy*dy), off=5;
+      const cx=(pts.x1+pts.x2)/2+(-dy/len)*off, cy=(pts.y1+pts.y2)/2+(dx/len)*off;
+      d=`M${pts.x1},${pts.y1} Q${cx},${cy} ${pts.x2},${pts.y2}`;
+    } else {
+      d=`M${pts.x1},${pts.y1} L${pts.x2},${pts.y2}`;
+    }
+    el('path',{d,fill:'none',stroke:color,'stroke-width':sw,'marker-end':'url(#arr-dim)',
+      'data-from':i,'data-to':j},ge);
+  }
+
+  drawNodes();
+}
+
+function drawNodes() {
+  const gn=document.getElementById('g-nodes'); gn.innerHTML='';
+  const tip=document.getElementById('ntip');
+
+  NODES.forEach(n=>{
+    const grp=el('g',{'data-id':n.id},gn);
+    grp.style.cursor='pointer';
+
+    // halo
+    el('circle',{cx:n.x,cy:n.y,r:22, fill: n.id===0 ? 'rgba(245,158,11,.06)' : 'rgba(59,130,246,.03)'},grp);
+    // circle
+    const c=el('circle',{cx:n.x,cy:n.y,r:14,
+      fill:'#0b1120',
+      stroke: n.id===0 ? '#f59e0b' : '#1c2b45',
+      'stroke-width': n.id===0 ? '2' : '1.5',
+      id:`nc-${n.id}`},grp);
+    // index
+    el('text',{x:n.x,y:n.y, 'text-anchor':'middle','dominant-baseline':'central',
+      'font-family':'JetBrains Mono,monospace','font-size':'9','font-weight':'700',
+      fill: n.id===0 ? '#f59e0b' : '#5a7090','pointer-events':'none'},grp).textContent=n.id;
+    // label
+    el('text',{x:n.x,y:n.y+26,'text-anchor':'middle',
+      'font-family':'Barlow Condensed,sans-serif','font-size':'9','font-weight':'500',
+      'letter-spacing':'.04em',fill:'#3a506a','pointer-events':'none'},grp).textContent=n.short;
+
+    // tooltip
+    grp.addEventListener('mouseenter', e=>{
+      const delivs=S.orders.filter(o=>o.destino===n.id);
+      let html=`<strong>[${n.id}] ${n.name}</strong>${n.desc}`;
+      if (delivs.length) {
+        html+=`<div style="margin-top:4px;color:var(--amber)">`;
+        delivs.forEach(o=>{html+=`<div>📦 ${o.id} — ${o.beneficio}€ · ${o.peso}kg</div>`;});
+        html+='</div>';
+      }
+      if (S.fwDist) {
+        const conns=[];
+        for (let j=0;j<12;j++) if (j!==n.id&&S.fwDist[n.id][j]!==INF)
+          conns.push(`→ ${NODES[j].short}: ${S.fwDist[n.id][j].toFixed(0)} min`);
+        if (conns.length) html+=`<div style="margin-top:4px;color:var(--text2);font-size:.57rem;">${conns.slice(0,5).join('<br>')}</div>`;
+      }
+      tip.innerHTML=html; tip.classList.add('vis');
+    });
+    grp.addEventListener('mousemove', e=>{
+      const r=document.querySelector('.graph-area').getBoundingClientRect();
+      let x=e.clientX-r.left+14, y=e.clientY-r.top-12;
+      if (x+200>r.width) x-=210;
+      tip.style.left=x+'px'; tip.style.top=y+'px';
+    });
+    grp.addEventListener('mouseleave',()=>tip.classList.remove('vis'));
+  });
+}
+
+function setNodeStyle(id, stroke, fill='#0b1120', sw='1.5') {
+  const c=document.getElementById(`nc-${id}`);
+  if (c) { c.setAttribute('stroke',stroke); c.setAttribute('fill',fill); c.setAttribute('stroke-width',sw); }
+}
+
+function resetNodeStyles() {
+  NODES.forEach(n=>setNodeStyle(n.id, n.id===0?'#f59e0b':'#1c2b45', '#0b1120', n.id===0?'2':'1.5'));
+}
+
+function highlightDeliveries(delivSet, donSet=new Set()) {
+  NODES.forEach(n=>{
+    if (n.id===0) return;
+    if (donSet.has(n.id)) setNodeStyle(n.id,'#22c55e','rgba(34,197,94,.1)','2');
+    else if (delivSet.has(n.id)) setNodeStyle(n.id,'rgba(59,130,246,.7)','rgba(59,130,246,.05)','1.5');
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// ANIMATION
+// ════════════════════════════════════════════════════════════
+function buildSteps(result) {
+  const steps=[];
+  const total=result.trips.reduce((s,t)=>s+t.expanded.length-1,0);
+  let gi=0;
+  result.trips.forEach((trip,ti)=>{
+    const color=TRIP_COLORS[ti%TRIP_COLORS.length];
+    const delivNodes=new Set(S.orders.filter(o=>trip.orders.includes(o.id)).map(o=>o.destino));
+    trip.expanded.forEach((node,i)=>{
+      if (i===0) return;
+      const from=trip.expanded[i-1];
+      steps.push({
+        from, to:node, color,
+        isDelivery: node!==0 && delivNodes.has(node),
+        tripIdx:ti,
+        tripN:trip.number,
+        gProg:(gi+1)/total,
+        tProg:i/(trip.expanded.length-1),
+      });
+      gi++;
+    });
+  });
+  return steps;
+}
+
+function clearRoutes() {
+  document.getElementById('g-routes').innerHTML='';
+  document.getElementById('g-vehicle').innerHTML='';
+}
+
+function drawStep(step) {
+  const {from,to,color}=step;
+  const n1=NODES[from], n2=NODES[to];
+  const pts=shortenPts(n1.x,n1.y,n2.x,n2.y,16,19);
+  const gr=document.getElementById('g-routes');
+  const d=`M${pts.x1},${pts.y1} L${pts.x2},${pts.y2}`;
+  const len=Math.hypot(pts.x2-pts.x1,pts.y2-pts.y1);
+
+  // glow
+  const gp=el('path',{d,fill:'none',stroke:color,'stroke-width':'5','stroke-opacity':'.18','stroke-linecap':'round'},gr);
+  // line
+  const p=el('path',{d,fill:'none',stroke:color,'stroke-width':'2.2','stroke-linecap':'round',
+    'stroke-dasharray':len,'stroke-dashoffset':len},gr);
+  const anim=el('animate',{'attributeName':'stroke-dashoffset',from:len,to:'0',
+    dur:`${S.speed*.85}ms`,fill:'freeze'},p);
+
+  // vehicle dot
+  const vl=document.getElementById('g-vehicle'); vl.innerHTML='';
+  const n=NODES[to];
+  const ping=el('circle',{cx:n.x,cy:n.y,r:'14',fill:'none',stroke:color,'stroke-width':'2'},vl);
+  el('animate',{'attributeName':'r',values:'14;28;14',dur:'.8s',repeatCount:'2'},ping);
+  el('animate',{'attributeName':'stroke-opacity',values:'0.9;0;0.9',dur:'.8s',repeatCount:'2'},ping);
+  el('circle',{cx:n.x,cy:n.y,r:'5',fill:color,filter:'url(#f-cyan)'},vl);
+
+  // delivery flash
+  if (step.isDelivery) {
+    const c=document.getElementById(`nc-${to}`);
+    if (c) {
+      c.setAttribute('stroke',color); c.setAttribute('stroke-width','3');
+      c.setAttribute('fill',color+'22');
+      setTimeout(()=>{c.setAttribute('stroke','#22c55e'); c.setAttribute('stroke-width','2'); c.setAttribute('fill','rgba(34,197,94,.12)');}, S.speed*.9);
+    }
+  }
+}
+
+function updateOverlay(step, elapsedMin, elapsedEur) {
+  document.getElementById('ov-step').textContent=`Tanda ${step.tripN} · Paso ${S.stepIdx}/${S.steps.length}`;
+  document.getElementById('ov-loc').textContent=`${NODES[step.from].short} → ${NODES[step.to].short}${step.isDelivery?' 📦':''}`;
+  document.getElementById('ov-time').textContent=elapsedMin.toFixed(0);
+  document.getElementById('ov-eur').textContent=elapsedEur.toFixed(1);
+  document.getElementById('ov-prog').style.width=`${step.gProg*100}%`;
+}
+
+let elapsedMin=0, elapsedEur=0;
+
+function tick() {
+  if (!S.animating || S.paused) return;
+  if (S.stepIdx>=S.steps.length) { finishAnim(); return; }
+  const step=S.steps[S.stepIdx];
+  drawStep(step);
+  const edge=S.fwDist[step.from][step.to];
+  elapsedMin+=edge===INF?0:edge;
+  elapsedEur=S.result.totalNeto*step.gProg;
+  updateOverlay(step, elapsedMin, elapsedEur);
+  S.stepIdx++;
+  S.timer=setTimeout(tick, S.speed);
+}
+
+function finishAnim() {
+  S.animating=false;
+  addLog('✓ Simulación completada','ok');
+  document.getElementById('ov-step').textContent='✓ Ruta completada';
+  document.getElementById('ov-prog').style.background='var(--green)';
+  document.getElementById('ov-prog').style.width='100%';
+  document.getElementById('run-btn').disabled=false;
+  document.getElementById('pause-btn').disabled=true;
+  // Mark all delivery nodes as done
+  const donSet=new Set(S.result.trips.flatMap(t=>
+    S.orders.filter(o=>t.orders.includes(o.id)).map(o=>o.destino)
+  ));
+  const delSet=new Set(donSet);
+  highlightDeliveries(delSet, donSet);
+  renderOrders();
+}
+
+// ════════════════════════════════════════════════════════════
+// SIMULATION
+// ════════════════════════════════════════════════════════════
+function runSim() {
+  if (!S.fwDist) return;
+  if (!S.orders.length) { addLog('⚠ Sin pedidos.','warn'); return; }
+
+  resetSim();
+
+  const veh=VEHICLES[S.vehicle];
+  addLog(`▶ ${S.vehicle} · ${S.method} · ${S.multi?'Multi-viaje':'Un viaje'}`, 'info');
+
+  let result;
+  try {
+    if (S.multi) {
+      result=runMultiTrip(S.orders, S.vehicle, S.method);
+    } else {
+      const t=computeTrip(S.orders, S.vehicle, S.method);
+      if (!t) { addLog('✗ Ningún pedido cabe en el vehículo.','err'); return; }
+      t.number=1;
+      const neto=t.neto, eff=t.time>0?neto/t.time:0;
+      result={trips:[t], totalTime:t.time, totalBenefit:t.benefit, totalNeto:neto,
+              totalCosEmb:t.cosEmb, totalCosRuta:t.cosRuta, efficiency:eff, cant:[]};
+    }
+  } catch(e) { addLog(`✗ Error: ${e.message}`,'err'); return; }
+
+  S.result=result;
+  addLog(`✓ ${result.trips.length} tanda(s) · Neto: ${result.totalNeto.toFixed(1)}€ · ${result.totalTime.toFixed(1)} min`,'ok');
+  if (result.cant.length) addLog(`⚠ Intransportables: ${result.cant.join(', ')}`,'warn');
+
+  showResults(result);
+
+  S.steps=buildSteps(result);
+  S.stepIdx=0; S.animating=true; S.paused=false;
+  elapsedMin=0; elapsedEur=0;
+
+  // Highlight all pending delivery nodes
+  const delSet=new Set(result.trips.flatMap(t=>
+    S.orders.filter(o=>t.orders.includes(o.id)).map(o=>o.destino)
+  ));
+  highlightDeliveries(delSet);
+
+  document.getElementById('g-overlay').style.display='block';
+  document.getElementById('run-btn').disabled=true;
+  document.getElementById('pause-btn').disabled=false;
+  document.getElementById('reset-btn').disabled=false;
+
+  tick();
+}
+
+function togglePause() {
+  if (S.paused) {
+    S.paused=false;
+    document.getElementById('pause-btn').textContent='⏸ Pausar';
+    tick();
+  } else {
+    S.paused=true;
+    clearTimeout(S.timer);
+    document.getElementById('pause-btn').textContent='▶ Reanudar';
+  }
+}
+
+function resetSim() {
+  clearTimeout(S.timer);
+  S.animating=false; S.paused=false; S.result=null; S.steps=[]; S.stepIdx=0;
+  clearRoutes(); resetNodeStyles();
+  document.getElementById('g-overlay').style.display='none';
+  document.getElementById('empty-res').style.display='block';
+  document.getElementById('metrics').style.display='none';
+  document.getElementById('sec-trips').style.display='none';
+  document.getElementById('sec-cost').style.display='none';
+  document.getElementById('run-btn').disabled=false;
+  document.getElementById('pause-btn').disabled=true;
+  document.getElementById('pause-btn').textContent='⏸ Pausar';
+  document.getElementById('reset-btn').disabled=false;
+  renderOrders();
+}
+
+// ════════════════════════════════════════════════════════════
+// RESULTS UI
+// ════════════════════════════════════════════════════════════
+function showResults(r) {
+  document.getElementById('empty-res').style.display='none';
+  document.getElementById('metrics').style.display='block';
+  document.getElementById('sec-trips').style.display='block';
+  document.getElementById('sec-cost').style.display='block';
+
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric-grid">
+      <div class="metric">
+        <div class="metric-label">Beneficio Neto</div>
+        <div class="metric-val green">${r.totalNeto.toFixed(1)} €</div>
+        <div class="metric-sub">bruto ${r.totalBenefit}€</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Tiempo Total</div>
+        <div class="metric-val cyan">${r.totalTime.toFixed(1)} min</div>
+        <div class="metric-sub">${r.trips.length} tanda(s)</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Eficiencia</div>
+        <div class="metric-val">${r.efficiency.toFixed(2)} €/min</div>
+        <div class="metric-sub">${S.method} · ${S.vehicle}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Pedidos</div>
+        <div class="metric-val blue">${r.trips.reduce((s,t)=>s+t.orders.length,0)}/${S.orders.length}</div>
+        <div class="metric-sub">${r.cant.length ? r.cant.length+' intransportables' : 'todos entregados'}</div>
+      </div>
+    </div>`;
+
+  const tl=document.getElementById('trips-list'); tl.innerHTML='';
+  r.trips.forEach((trip,i)=>{
+    const color=TRIP_COLORS[i%TRIP_COLORS.length];
+    const routeNames=trip.route.map(n=>NODES[n].short).join(' → ');
+    const card=document.createElement('div');
+    card.className='trip-card';
+    card.style.borderColor=color+'44';
+    card.innerHTML=`
+      <div class="trip-hdr">
+        <div class="trip-num">
+          <span class="trip-dot" style="background:${color}"></span>
+          Tanda ${trip.number}
+        </div>
+        <span style="font-family:var(--mono);font-size:.6rem;color:${color}">${trip.neto.toFixed(1)}€ neto</span>
+      </div>
+      <div style="font-size:.6rem;color:var(--text2)">📦 ${trip.orders.join(', ')} · ⏱ ${trip.time.toFixed(1)} min</div>
+      <div class="route-disp" style="color:${color}bb">${routeNames}</div>
+      <div class="cost-tags">
+        <span class="ctag pos">+${trip.benefit}€</span>
+        <span class="ctag neg">−${trip.cosEmb.toFixed(1)}€ emb.</span>
+        <span class="ctag neg">−${trip.cosRuta.toFixed(1)}€ ruta</span>
+      </div>`;
+    tl.appendChild(card);
+  });
+
+  const cb=document.getElementById('cost-brkd');
+  cb.innerHTML=`
+    <div class="cmp-row"><span class="cmp-lbl">Beneficio bruto</span><span class="cmp-val neu">+${r.totalBenefit.toFixed(1)} €</span></div>
+    <div class="cmp-row"><span class="cmp-lbl">Coste embalaje</span><span class="cmp-val neg">−${r.totalCosEmb.toFixed(1)} €</span></div>
+    <div class="cmp-row"><span class="cmp-lbl">Coste operativo (${S.vehicle})</span><span class="cmp-val neg">−${r.totalCosRuta.toFixed(1)} €</span></div>
+    <div class="cmp-row" style="border-top:1px solid var(--border2);padding-top:5px;margin-top:2px;">
+      <span class="cmp-lbl" style="color:var(--text);font-weight:700">NETO FINAL</span>
+      <span class="cmp-val ${r.totalNeto>=0?'pos':'neg'}">${r.totalNeto>=0?'+':''}${r.totalNeto.toFixed(1)} €</span>
+    </div>
+    <div style="margin-top:10px;font-size:.6rem;color:var(--text3)">Eficiencia → ${r.efficiency.toFixed(3)} €/min</div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// ORDERS
+// ════════════════════════════════════════════════════════════
+let addFormOpen=false;
+
+function renderOrders() {
+  const list=document.getElementById('orders-list'); list.innerHTML='';
+  const delivered=S.result ? new Set(S.result.trips.flatMap(t=>t.orders)) : new Set();
+  const cant=S.result ? new Set(S.result.cant) : new Set();
+
+  S.orders.forEach(o=>{
+    const div=document.createElement('div');
+    div.className=`order-item${delivered.has(o.id)?' delivered':''}${cant.has(o.id)?' cant':''}`;
+    div.innerHTML=`
+      <div class="oid">${o.id}</div>
+      <div class="oinfo">${o.cliente||NODES[o.destino].name}<small>${o.peso}kg · ${o.volumen}u · →${NODES[o.destino].short}</small></div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <span class="obenefit">+${o.beneficio}€</span>
+        <span class="odel" onclick="removeOrder('${o.id}')">✕</span>
+      </div>`;
+    list.appendChild(div);
+  });
+  document.getElementById('order-count').textContent=`(${S.orders.length})`;
+}
+
+function toggleAddForm() {
+  addFormOpen=!addFormOpen;
+  document.getElementById('add-form').style.display=addFormOpen?'block':'none';
+  document.getElementById('add-btn').textContent=addFormOpen?'✕ Cancelar':'+ Añadir';
+  if (addFormOpen) {
+    const maxN=S.orders.reduce((m,o)=>Math.max(m,parseInt(o.id.replace(/\D/g,''))||0),0);
+    document.getElementById('f-id').value=`P${String(maxN+1).padStart(2,'0')}`;
+  }
+}
+
+function addOrder() {
+  const id=document.getElementById('f-id').value.trim().toUpperCase();
+  const dest=parseInt(document.getElementById('f-dest').value);
+  const peso=parseInt(document.getElementById('f-peso').value);
+  const vol=parseInt(document.getElementById('f-vol').value);
+  const ben=parseInt(document.getElementById('f-ben').value);
+  if (!id||isNaN(dest)||isNaN(peso)||isNaN(vol)||isNaN(ben)) { addLog('⚠ Datos incompletos.','warn'); return; }
+  if (S.orders.find(o=>o.id===id)) { addLog(`⚠ ID ${id} ya existe.`,'warn'); return; }
+  S.orders.push({id, peso, volumen:vol, beneficio:ben, destino:dest, cliente:`Cliente ${id}`});
+  renderOrders(); addLog(`✓ Pedido ${id} añadido — ${ben}€ · ${peso}kg · →${NODES[dest].name}`,'ok');
+  toggleAddForm(); resetSim();
+}
+
+function removeOrder(id) {
+  S.orders=S.orders.filter(o=>o.id!==id);
+  renderOrders(); addLog(`Pedido ${id} eliminado`,'warn'); resetSim();
+}
+
+// ════════════════════════════════════════════════════════════
+// VEHICLE / METHOD
+// ════════════════════════════════════════════════════════════
+function renderVehicles() {
+  const g=document.getElementById('veh-grid'); g.innerHTML='';
+  Object.entries(VEHICLES).forEach(([name,v])=>{
+    const card=document.createElement('div');
+    card.className=`veh-card${name===S.vehicle?' on':''}`;
+    card.innerHTML=`<div class="veh-icon">${v.icon}</div><div class="veh-name">${name}</div><div class="veh-cap">${v.cpeso}kg · ${v.cvol}u</div><div class="veh-cap">${v.cpm}€/min</div>`;
+    card.onclick=()=>{ S.vehicle=name; renderVehicles(); resetSim();
+      document.getElementById('hdr-veh').textContent=`${v.icon} ${name}`; };
+    g.appendChild(card);
+  });
+}
+
+function setMethod(m) {
+  S.method=m;
+  document.querySelectorAll('.mth-btn').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  updateMethodBadge(); resetSim();
+}
+
+function toggleMulti() {
+  S.multi=!S.multi;
+  document.getElementById('multi-sw').classList.toggle('on',S.multi);
+  updateMethodBadge(); resetSim();
+}
+
+function updateMethodBadge() {
+  document.getElementById('hdr-method').textContent=`${S.method} · ${S.multi?'Multi-viaje':'Un viaje'}`;
+}
+
+function setSpeed(v) {
+  S.speed=parseInt(v);
+  document.getElementById('speed-lbl').textContent=`${v}ms`;
+}
+
+// ════════════════════════════════════════════════════════════
+// LOG
+// ════════════════════════════════════════════════════════════
+function addLog(msg, type='') {
+  const log=document.getElementById('log-wrap');
+  const d=document.createElement('div');
+  d.className=`log-entry ${type}`;
+  const now=new Date();
+  const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  d.textContent=`[${t}] ${msg}`;
+  // Insert after section title
+  const title=log.querySelector('.section-title');
+  title.after(d);
+  // Cap at 15
+  const entries=log.querySelectorAll('.log-entry');
+  if (entries.length>15) entries[entries.length-1].remove();
+}
+
+// ════════════════════════════════════════════════════════════
+// CUT MODE
+// ════════════════════════════════════════════════════════════
+let cutPanelOpen = false;
+let cutDir = 'uni'; // 'uni' | 'bi'
+
+function toggleCutPanel() {
+  cutPanelOpen = !cutPanelOpen;
+  const panel = document.getElementById('cut-panel');
+  const btn   = document.getElementById('cut-btn');
+  panel.style.display = cutPanelOpen ? 'block' : 'none';
+  btn.classList.toggle('btn-cut-active', cutPanelOpen);
+  btn.textContent = cutPanelOpen ? '✕ Cerrar Panel' : '✂ Cortar Calle';
+}
+
+function setCutDir(dir) {
+  cutDir = dir;
+  document.getElementById('cut-dir-uni').classList.toggle('on', dir === 'uni');
+  document.getElementById('cut-dir-bi').classList.toggle('on',  dir === 'bi');
+}
+
+function applyCutFromPanel() {
+  const fromId = parseInt(document.getElementById('cut-from').value);
+  const toId   = parseInt(document.getElementById('cut-to').value);
+  if (fromId === toId) { addLog('⚠ Origen y destino son el mismo nodo.', 'warn'); return; }
+
+  const directions = cutDir === 'bi' ? [[fromId, toId], [toId, fromId]] : [[fromId, toId]];
+  let applied = 0;
+
+  directions.forEach(([a, b]) => {
+    if (MATRIX[a][b] === INF) {
+      addLog(`⚠ ${NODES[a].short} → ${NODES[b].short} ya no existe.`, 'warn');
+      return;
+    }
+    // Check not already cut
+    const already = S.cuts.find(c => c.from === a && c.to === b);
+    if (already) { addLog(`⚠ ${NODES[a].short} → ${NODES[b].short} ya cortado.`, 'warn'); return; }
+
+    const orig = MATRIX[a][b];
+    MATRIX[a][b] = INF;
+    S.cuts.push({ from: a, to: b, orig });
+    applied++;
+    addLog(`✂ Cortado: ${NODES[a].short} → ${NODES[b].short} (era ${orig} min)`, 'err');
+  });
+
+  if (applied > 0) {
+    // Recalculate Floyd-Warshall with updated matrix
+    const { dist, pred } = floydWarshall(MATRIX);
+    S.fwDist = dist; S.fwPred = pred;
+    renderCuts();
+    drawCutLines();
+    resetSim();
+    addLog('↺ Floyd-Warshall recalculado con cortes aplicados.', 'info');
+  }
+}
+
+function removeCut(idx) {
+  const cut = S.cuts[idx];
+  MATRIX[cut.from][cut.to] = cut.orig;
+  S.cuts.splice(idx, 1);
+  addLog(`↺ Restaurado: ${NODES[cut.from].short} → ${NODES[cut.to].short}`, 'ok');
+  const { dist, pred } = floydWarshall(MATRIX);
+  S.fwDist = dist; S.fwPred = pred;
+  renderCuts();
+  drawCutLines();
+  resetSim();
+}
+
+function renderCuts() {
+  const list = document.getElementById('cuts-list');
+  list.innerHTML = '';
+  S.cuts.forEach((cut, i) => {
+    const div = document.createElement('div');
+    div.className = 'cut-item';
+    div.innerHTML = `
+      <span>${NODES[cut.from].short} → ${NODES[cut.to].short}</span>
+      <span style="color:var(--text3);font-size:.55rem;">${cut.orig}min cortado</span>
+      <span style="cursor:pointer;color:var(--text3);font-size:.72rem;padding:0 2px;" onclick="removeCut(${i})" title="Restaurar">✕</span>`;
+    list.appendChild(div);
+  });
+}
+
+function drawCutLines() {
+  const gc = document.getElementById('g-cuts');
+  gc.innerHTML = '';
+  S.cuts.forEach(cut => {
+    const n1 = NODES[cut.from], n2 = NODES[cut.to];
+    const mx = (n1.x + n2.x) / 2, my = (n1.y + n2.y) / 2;
+    // Red X cross
+    const size = 7;
+    el('line', { x1: mx - size, y1: my - size, x2: mx + size, y2: my + size,
+      stroke: '#ef4444', 'stroke-width': '2.2', 'stroke-linecap': 'round', opacity: '.85' }, gc);
+    el('line', { x1: mx + size, y1: my - size, x2: mx - size, y2: my + size,
+      stroke: '#ef4444', 'stroke-width': '2.2', 'stroke-linecap': 'round', opacity: '.85' }, gc);
+    // Red dashed line over the edge
+    el('line', { x1: n1.x, y1: n1.y, x2: n2.x, y2: n2.y,
+      stroke: '#ef4444', 'stroke-width': '1.2', 'stroke-dasharray': '4 3',
+      opacity: '.35', 'stroke-linecap': 'round' }, gc);
+  });
+}
+
+function populateCutSelects() {
+  const selFrom = document.getElementById('cut-from');
+  const selTo   = document.getElementById('cut-to');
+  NODES.forEach(n => {
+    const o1 = document.createElement('option'); o1.value = n.id; o1.textContent = `[${n.id}] ${n.name}`; selFrom.appendChild(o1);
+    const o2 = document.createElement('option'); o2.value = n.id; o2.textContent = `[${n.id}] ${n.name}`; selTo.appendChild(o2);
+  });
+  // Default: 0 → 1
+  selFrom.value = '0';
+  selTo.value   = '1';
+}
+
+// ════════════════════════════════════════════════════════════
+// JSON EXPORT
+// ════════════════════════════════════════════════════════════
+function exportJSON() {
+  const matJSON=MATRIX.map(row=>row.map(v=>v===INF?null:v));
+  const scenario={
+    nombre: 'Escenario Alcalá',
+    descripcion: 'Generado desde RubénRoutes Dashboard',
+    matriz_adyacencia: matJSON,
+    pedidos: S.orders.map(({id,peso,volumen,beneficio,destino})=>({id,peso,volumen,beneficio,destino})),
+  };
+  const blob=new Blob([JSON.stringify(scenario, null, 2)], {type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='escenario_alcala.json'; a.click();
+  addLog('⬇ JSON exportado → escenario_alcala.json','ok');
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+function populateDestSelect() {
+  const sel=document.getElementById('f-dest');
+  NODES.slice(1).forEach(n=>{
+    const o=document.createElement('option');
+    o.value=n.id; o.textContent=`[${n.id}] ${n.name}`;
+    sel.appendChild(o);
+  });
+}
+
+function updateClock() {
+  document.getElementById('hdr-clock').textContent=
+    new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function init() {
+  initGraph();
+  renderVehicles();
+  populateDestSelect();
+  populateCutSelects();
+  renderOrders();
+  updateClock(); setInterval(updateClock, 1000);
+
+  // Floyd-Warshall (async so UI renders first)
+  setTimeout(()=>{
+    const t0=performance.now();
+    const {dist,pred}=floydWarshall(MATRIX);
+    S.fwDist=dist; S.fwPred=pred;
+    const ms=(performance.now()-t0).toFixed(2);
+    document.getElementById('fw-foot').textContent=`FW: ${ms}ms · n³=${12**3} ops`;
+    addLog(`✓ Floyd-Warshall precalculado en ${ms}ms — rutas mínimas listas`,'ok');
+    addLog('Sistema listo. Selecciona vehículo y ejecuta.','info');
+  }, 60);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
